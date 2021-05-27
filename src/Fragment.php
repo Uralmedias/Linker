@@ -1,6 +1,7 @@
 <?php namespace Uralmedias\Linker;
 
 
+use Uralmedias\Linker\Settings;
 use Uralmedias\Linker\Selector;
 use Uralmedias\Linker\Injector;
 use Uralmedias\Linker\Accessor;
@@ -14,8 +15,12 @@ use DOMDocument, DOMXPath;
 class Fragment
 {
 
+    static private $fileCache = [];
+    static private $bufferCache = [];
+
     private DOMDocument $document;
     private DOMXPath $xpath;
+    private $initProc = NULL;
 
 
     private function __construct() {}
@@ -23,7 +28,26 @@ class Fragment
 
     public function __toString(): string
     {
+        $this->touch();
         return html_entity_decode($this->document->saveHTML(), ENT_HTML5);
+    }
+
+
+    /**
+     * Выполняет процедуры загрузки содержимого, если они не были
+     * выполнены до этого. Если при создании фрагмента указать
+     * ленивую загрузку, то его содержимое будет формироваться
+     * не в момент определения переменной, а по первому требованию.
+     * С одной стороны - это упрощает оптимизацию при работе со
+     * статическим содержимым, с другой - усложняет отладку при
+     * работе с динамическим.
+     */
+    public function touch(): void
+    {
+        if (is_callable($this->initProc)) {
+            ($this->initProc)();
+        }
+        $this->initProc = NULL;
     }
 
 
@@ -31,16 +55,26 @@ class Fragment
      * Создаёт новый фрагмент, наполняя его из любого итерируемого
      * объекта, который предоставляет узлы DOM в качестве элементов.
      */
-    static public function fromNodes (iterable $nodes): self
+    static public function fromNodes (iterable $nodes, bool $lazyImport = NULL): self
     {
-        $doc = new DOMDocument("1.0", "utf-8");
-        foreach ($nodes as $i) {
-            $doc->appendChild($doc->importNode($i, true));
-        }
+        $lazyImport = $lazyImport === NULL ? Settings::$lazyImport : $lazyImport;
 
         $fragment = new static;
-        $fragment->document = $doc;
-        $fragment->xpath = new DOMXPath($doc);
+        $fragment->initProc = function ($nodes) {
+
+            $doc = new DOMDocument("1.0", "utf-8");
+            foreach ($nodes as $i) {
+                $doc->appendChild($doc->importNode($i, true));
+            }
+
+            $fragment = new static;
+            $fragment->document = $doc;
+            $fragment->xpath = new DOMXPath($doc);
+        };
+
+        if (!$lazyImport) {
+            $fragment->touch();
+        }
 
         return $fragment;
     }
@@ -49,14 +83,24 @@ class Fragment
     /**
      * Создаёт новый фрагмент разбирая входную строку.
      */
-    static public function fromString (string $contents): self
+    static public function fromString (string $contents, bool $lazyParsing = NULL): self
     {
-        $doc = new DOMDocument("1.0", "utf-8");
-        $doc->loadHTML($contents);
+        $lazyParsing = $lazyParsing === NULL ? Settings::$lazyParsing : $lazyParsing;
 
         $fragment = new static;
-        $fragment->document = $doc;
-        $fragment->xpath = new DOMXPath($doc);
+        $fragment->initProc = function () use ($fragment, $contents) {
+
+            $doc = new DOMDocument("1.0", "utf-8");
+            $doc->loadHTML($contents);
+
+            $fragment = new static;
+            $fragment->document = $doc;
+            $fragment->xpath = new DOMXPath($doc);
+        };
+
+        if (!$lazyParsing) {
+            $fragment->touch();
+        }
 
         return $fragment;
     }
@@ -64,15 +108,44 @@ class Fragment
 
     /**
      * Создаёт новый фрагмент разбирая загруженный файл.
+     *
+     * Значение аргументов, установленных в NULL будет, взято из Settings. Призначении TRUE
+     * у $asumeStatic файл будет загружен единожды за запрос - это оптимально для статики,
+     * но опасно для динамического контента. При значении TRUE у $lazyLoading будет применяться
+     * отложенная загрузка, что тоже не очень хорошо для динамического контента.
      */
-    static public function fromFile (string $filename): self
+    static public function fromFile (string $filename, bool $asumeStatic = NULL, bool $lazyLoading = NULL): self
     {
-        $doc = new DOMDocument("1.0", "utf-8");
-        $doc->loadHTMLFile($filename);
+        $lazyLoading = $lazyLoading === NULL ? Settings::$lazyLoading : $lazyLoading;
+        $asumeStatic = $asumeStatic === NULL ? Settings::$asumeStatic : $asumeStatic;
+
+        $createDoc = function () use ($filename) {
+            $doc = new DOMDocument("1.0", "utf-8");
+            $doc->loadHTMLFile($filename);
+            return $doc;
+        };
 
         $fragment = new static;
-        $fragment->document = $doc;
-        $fragment->xpath = new DOMXPath($doc);
+        $fragment->initProc = function () use ($fragment, $filename, $asumeStatic, $createDoc) {
+
+            if ($asumeStatic) {
+
+                if (!array_key_exists($filename, self::$fileCache)) {
+                    self::$fileCache[$filename] = $createDoc();
+                }
+                $fragment->document = clone self::$fileCache[$filename];
+
+            } else {
+
+                $fragment->document = $createDoc();
+            }
+
+            $fragment->xpath = new DOMXPath($fragment->document);
+        };
+
+        if (!$lazyLoading) {
+            $fragment->touch();
+        }
 
         return $fragment;
     }
@@ -80,14 +153,51 @@ class Fragment
 
     /**
      * Читает и разбирает стандартный вывод внутри функции.
+     *
+     * Значение аргументов, установленных в NULL будет, взято из Settings. Призначении TRUE
+     * у $asumeIdempotence будет предполагаться, что функция идемпотентна и её вывод будет
+     * закеширован на время выполнения запроса. При значении TRUE у $lazyExecution выполнение
+     * будет отложено до первого запроса к данным.
      */
-    static public function fromBuffer (callable $process): self
+    static public function fromBuffer (callable $process, bool $asumeIdempotence = NULL, bool $lazyExecution = NULL): self
     {
-        ob_start();
-        call_user_func($process);
-        $buffer = ob_get_contents();
-        ob_end_clean();
-        return static::fromString($buffer);
+        $lazyExecution = $lazyExecution === NULL ? Settings::$lazyExecution : $lazyExecution;
+        $asumeIdempotence = $asumeIdempotence === NULL ? Settings::$asumeIdempotence : $asumeIdempotence;
+
+        $createDoc = function () use ($process) {
+            ob_start();
+            call_user_func($process);
+            $buffer = ob_get_contents();
+            ob_end_clean();
+            $doc = new DOMDocument("1.0", "utf-8");
+            $doc->loadHTML($buffer);
+            return $doc;
+        };
+
+        $fragment = new static;
+        $fragment->initProc = function () use ($fragment, $process, $asumeIdempotence, $createDoc) {
+
+            if ($asumeIdempotence) {
+
+                $hash = spl_object_hash($process);
+                if (!array_key_exists($hash, self::$bufferCache)) {
+                    self::$bufferCache[$hash] = $createDoc();
+                }
+                $fragment->document = clone self::$fileCache[$hash];
+
+            } else {
+
+                $fragment->document = $createDoc();
+            }
+
+            $fragment->xpath = new DOMXPath($fragment->document);
+        };
+
+        if (!$lazyExecution) {
+            $fragment->touch();
+        }
+
+        return $fragment;
     }
 
 
@@ -99,6 +209,8 @@ class Fragment
      */
     public function minimize (bool $comments = FALSE, bool $scripts = FALSE)
     {
+        $this->touch();
+
         $q = $scripts ?
             '//text()[not(parent::pre)]':
             '//text()[not(parent::script) and not(parent::style) and not(parent::pre)]';
@@ -125,6 +237,8 @@ class Fragment
      */
     public function cut (...$selectors): self
     {
+        $this->touch();
+
         $lists = [];
         $nodes = [];
 
@@ -148,6 +262,8 @@ class Fragment
      */
     public function copy (mixed ...$selectors): self
     {
+        $this->touch();
+
         $nodes = [];
         foreach ($selectors as $s) {
             $list = $this->xpath->query(Selector::fromValue($s));
@@ -165,6 +281,8 @@ class Fragment
      */
     public function put (self ...$fragments): Injector
     {
+        $this->touch();
+
         $nodes = [];
         foreach ($fragments as $f) {
             foreach ($f->document->childNodes as $n) {
@@ -181,6 +299,8 @@ class Fragment
      */
     public function write (string ...$strings): Injector
     {
+        $this->touch();
+
         $nodes = [];
         foreach ($strings as $s) {
             if ($str = $this->document->createTextNode($s)) {
@@ -197,6 +317,8 @@ class Fragment
      */
     public function annotate (string ...$comments): Injector
     {
+        $this->touch();
+
         $nodes = [];
         foreach ($comments as $c) {
             if ($com = $this->document->createComment($c)) {
@@ -213,6 +335,8 @@ class Fragment
      */
     public function nodes (...$selectors): Accessor
     {
+        $this->touch();
+
         $nodes = [];
         foreach ($selectors as $s) {
             $list = $this->xpath->query(Selector::fromValue($s));

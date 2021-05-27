@@ -26,7 +26,7 @@ final class FragmentTest extends TestCase
         $y = Fragment::fromFile(__DIR__.'/fragmenttest/optimized.html');
 
         $this->expectOutputString($y);
-        $x->optimize();
+        $x->minimize();
         echo $x;
     }
 
