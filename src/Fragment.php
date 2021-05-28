@@ -23,7 +23,13 @@ class Fragment
     private $initProc = NULL;
 
 
-    private function __construct() {}
+    private function __construct(bool $lazy, callable $proc)
+    {
+        $this->initProc = $proc;
+        if (!$lazy) {
+            $this->touch();
+        }
+    }
 
 
     public function __toString(): string
@@ -45,7 +51,7 @@ class Fragment
     public function touch(): void
     {
         if (is_callable($this->initProc)) {
-            ($this->initProc)();
+            ($this->initProc)($this);
         }
         $this->initProc = NULL;
     }
@@ -57,26 +63,18 @@ class Fragment
      */
     static public function fromNodes (iterable $nodes, bool $lazyImport = NULL): self
     {
-        $lazyImport = $lazyImport === NULL ? Settings::$lazyImport : $lazyImport;
+        $lazyImport = ($lazyImport === NULL ? Settings::$lazyImport : $lazyImport);
 
-        $fragment = new static;
-        $fragment->initProc = function ($nodes) {
+        return new static ($lazyImport, function ($fragment) use ($nodes) {
 
             $doc = new DOMDocument("1.0", "utf-8");
-            foreach ($nodes as $i) {
-                $doc->appendChild($doc->importNode($i, true));
+            foreach ($nodes as $n) {
+                $doc->appendChild($doc->importNode($n, TRUE));
             }
 
-            $fragment = new static;
             $fragment->document = $doc;
             $fragment->xpath = new DOMXPath($doc);
-        };
-
-        if (!$lazyImport) {
-            $fragment->touch();
-        }
-
-        return $fragment;
+        });
     }
 
 
@@ -87,22 +85,13 @@ class Fragment
     {
         $lazyParsing = $lazyParsing === NULL ? Settings::$lazyParsing : $lazyParsing;
 
-        $fragment = new static;
-        $fragment->initProc = function () use ($fragment, $contents) {
+        return new static ($lazyParsing, function ($fragment) use ($contents) {
 
             $doc = new DOMDocument("1.0", "utf-8");
             $doc->loadHTML($contents);
-
-            $fragment = new static;
             $fragment->document = $doc;
             $fragment->xpath = new DOMXPath($doc);
-        };
-
-        if (!$lazyParsing) {
-            $fragment->touch();
-        }
-
-        return $fragment;
+        });
     }
 
 
@@ -125,29 +114,19 @@ class Fragment
             return $doc;
         };
 
-        $fragment = new static;
-        $fragment->initProc = function () use ($fragment, $filename, $asumeStatic, $createDoc) {
+        return new static ($lazyLoading, function ($fragment) use ($filename, $asumeStatic, $createDoc) {
 
             if ($asumeStatic) {
-
                 if (!array_key_exists($filename, self::$fileCache)) {
                     self::$fileCache[$filename] = $createDoc();
                 }
                 $fragment->document = clone self::$fileCache[$filename];
-
             } else {
-
                 $fragment->document = $createDoc();
             }
 
             $fragment->xpath = new DOMXPath($fragment->document);
-        };
-
-        if (!$lazyLoading) {
-            $fragment->touch();
-        }
-
-        return $fragment;
+        });
     }
 
 
@@ -165,6 +144,7 @@ class Fragment
         $asumeIdempotence = $asumeIdempotence === NULL ? Settings::$asumeIdempotence : $asumeIdempotence;
 
         $createDoc = function () use ($process) {
+
             ob_start();
             call_user_func($process);
             $buffer = ob_get_contents();
@@ -174,12 +154,11 @@ class Fragment
             return $doc;
         };
 
-        $fragment = new static;
-        $fragment->initProc = function () use ($fragment, $process, $asumeIdempotence, $createDoc) {
+        return new static ($lazyExecution, function ($fragment) use ($process, $asumeIdempotence, $createDoc) {
 
             if ($asumeIdempotence) {
 
-                $hash = spl_object_hash($process);
+                $hash = spl_object_hash((object) $process);
                 if (!array_key_exists($hash, self::$bufferCache)) {
                     self::$bufferCache[$hash] = $createDoc();
                 }
@@ -191,13 +170,7 @@ class Fragment
             }
 
             $fragment->xpath = new DOMXPath($fragment->document);
-        };
-
-        if (!$lazyExecution) {
-            $fragment->touch();
-        }
-
-        return $fragment;
+        });
     }
 
 
