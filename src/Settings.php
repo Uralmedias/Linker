@@ -4,16 +4,38 @@
 abstract class Settings
 {
 
+    /** Влияет на работу Fragment, определяет момент разбора строки */
     static public bool $lazyParsing = TRUE;
+
+    /** Влияет на работу Fragment, определяет момент загрузки файла */
     static public bool $lazyLoading = TRUE;
+
+    /** Влияет на работу Fragment и Injector, определяет момент импорта узлов */
     static public bool $lazyImport = TRUE;
+
+    /** Влияет на работу Fragment, определяет момент вызова процедуры для генерации буфера */
     static public bool $lazyExecution = TRUE;
+
+    /** Влияет на работу Fragment и Injector, определяет можно ли кэшировать данные */
     static public bool $asumeStatic = TRUE;
+
+    /** Влияет на работу Fragment, определяет можно ли кэшировать результат вызова функции */
     static public bool $asumeIdempotence = TRUE;
+
+    /** Путь на диске, где лежат исходники верстки */
     static public string $sourcePath = '.';
+
+    /** Путь на диске, где происходит выполнение скриптов */
     static public string $publicPath = '.';
 
 
+    /**
+     * Создает или обновляет ссылки на ресурсы в публичной директории.
+     *
+     * Принимает список путей файлов или каталогов, на котории нужно
+     * создать ссылки. Относительные пути считаются от $sourcePath, а
+     * ссылки создаются в $publicPath.
+     */
     static public function assets (string ...$paths)
     {
         $cwd = getcwd();

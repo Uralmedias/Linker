@@ -39,13 +39,7 @@ class Fragment
 
 
     /**
-     * Выполняет процедуры загрузки содержимого, если они не были
-     * выполнены до этого. Если при создании фрагмента указать
-     * ленивую загрузку, то его содержимое будет формироваться
-     * не в момент определения переменной, а по первому требованию.
-     * С одной стороны - это упрощает оптимизацию при работе со
-     * статическим содержимым, с другой - усложняет отладку при
-     * работе с динамическим.
+     * Загружает и парсит данные.
      */
     public function touch(): void
     {
@@ -79,7 +73,7 @@ class Fragment
     /**
      * Создаёт новый фрагмент разбирая входную строку.
      */
-    static public function fromString (string $contents, bool $lazyParsing = NULL): self
+    static public function fromString (string $contents): self
     {
         $fragment = new static (Settings::$lazyParsing, function () use ($contents) {
 
@@ -95,11 +89,6 @@ class Fragment
 
     /**
      * Создаёт новый фрагмент разбирая загруженный файл.
-     *
-     * Значение аргументов, установленных в NULL будет, взято из Settings. Призначении TRUE
-     * у $asumeStatic файл будет загружен единожды за запрос - это оптимально для статики,
-     * но опасно для динамического контента. При значении TRUE у $lazyLoading будет применяться
-     * отложенная загрузка, что тоже не очень хорошо для динамического контента.
      */
     static public function fromFile (string $filename): self
     {
@@ -128,13 +117,8 @@ class Fragment
 
     /**
      * Читает и разбирает стандартный вывод внутри функции.
-     *
-     * Значение аргументов, установленных в NULL будет, взято из Settings. Призначении TRUE
-     * у $asumeIdempotence будет предполагаться, что функция идемпотентна и её вывод будет
-     * закеширован на время выполнения запроса. При значении TRUE у $lazyExecution выполнение
-     * будет отложено до первого запроса к данным.
      */
-    static public function fromBuffer (callable $process, bool $asumeIdempotence = NULL, bool $lazyExecution = NULL): self
+    static public function fromBuffer (callable $process): self
     {
         return new static (Settings::$lazyExecution, function () use ($process) {
 

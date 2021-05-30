@@ -34,6 +34,9 @@ class Injector
     }
 
 
+    /**
+     * Импортирует узлы из документа-источника в приемник.
+     */
     public function touch ()
     {
         if (!$this->imported) {
