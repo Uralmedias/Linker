@@ -2,6 +2,7 @@
 
 
 use Uralmedias\Linker\Selector;
+use Uralmedias\Linker\Settings;
 use DOMNode, DOMXPath;
 
 
@@ -19,15 +20,28 @@ class Injector
 
     private DOMXpath $target;
     private array $source = [];
+    private bool $imported = FALSE;
 
 
     public function __construct(DOMXPath $target, DOMNode ...$source)
     {
         $this->target = $target;
+        $this->source = $source;
 
-        $doc = $target->document;
-        foreach ($source as $s) {
-            $this->source[] = $doc->importNode($s, true);
+        if (!Settings::$lazyImport) {
+            $this->touch();
+        }
+    }
+
+
+    public function touch ()
+    {
+        if (!$this->imported) {
+            $doc = $this->target->document;
+            foreach ($this->source as &$s) {
+                $s = $doc->importNode($s, true);
+            }
+            $this->imported = Settings::$asumeStatic;
         }
     }
 
@@ -120,6 +134,7 @@ class Injector
 
     private function inject (array $selectors, callable $proc)
     {
+        $this->touch();
         foreach ($selectors as $s) {
             $list = $this->target->query(Selector::fromValue($s));
             foreach ($list as $l) {
