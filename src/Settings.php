@@ -10,25 +10,36 @@ abstract class Settings
     static public bool $lazyExecution = TRUE;
     static public bool $asumeStatic = TRUE;
     static public bool $asumeIdempotence = TRUE;
+    static public string $sourcePath = '.';
+    static public string $publicPath = '.';
 
 
-    static public function array (array $updates = NULL): array
+    static public function assets (string ...$paths)
     {
-        if ($updates !== NULL) {
-            foreach ($updates as $uName => $uValue) {
-                static::$$uName = $uValue;
+        $cwd = getcwd();
+        $source = realpath(self::$sourcePath);
+        $public = realpath(self::$publicPath);
+        $links = [];
+
+        if ($source != $target) {
+
+            chdir($source);
+            foreach($paths as $p) {
+                if ($path = realpath($p)) {
+                    $links[$p] = $path;
+                }
             }
+
+            chdir($target);
+            foreach ($links as $lLink => $lTarget) {
+                if (file_exists($lLink) and is_link($lLink)) {
+                    unlink($lLink);
+                }
+                symlink($lTarget, $lLink);
+            }
+
+            chdir($cwd);
         }
-
-        return [
-
-            'lazyParsing' => static::$lazyParsing,
-            'lazyLoading' => static::$lazyLoading,
-            'lazyImport' => static::$lazyImport,
-            'lazyExecution' => static::$lazyExecution,
-            'asumeStatic' => static::$asumeStatic,
-            'asumeIdempotence' => static::$asumeIdempotence
-        ];
     }
 
 }

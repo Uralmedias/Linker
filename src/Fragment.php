@@ -15,17 +15,16 @@ use DOMDocument, DOMXPath;
 class Fragment
 {
 
-    static private $fileCache = [];
-    static private $bufferCache = [];
+    static private $cache = [];
 
     private DOMDocument $document;
     private DOMXPath $xpath;
-    private $initProc = NULL;
+    private $initializer = NULL;
 
 
-    private function __construct(bool $lazy, callable $proc)
+    private function __construct(bool $lazy, callable $initializer)
     {
-        $this->initProc = $proc;
+        $this->initializer = $initializer;
         if (!$lazy) {
             $this->touch();
         }
@@ -50,10 +49,12 @@ class Fragment
      */
     public function touch(): void
     {
-        if (is_callable($this->initProc)) {
-            ($this->initProc)($this);
+        if ($this->initializer) {
+            $doc = ($this->initializer)();
+            $this->initializer = NULL;
+            $this->document = $doc;
+            $this->xpath = new DOMXPath($doc);
         }
-        $this->initProc = NULL;
     }
 
 
@@ -61,19 +62,16 @@ class Fragment
      * Создаёт новый фрагмент, наполняя его из любого итерируемого
      * объекта, который предоставляет узлы DOM в качестве элементов.
      */
-    static public function fromNodes (iterable $nodes, bool $lazyImport = NULL): self
+    static public function fromNodes (iterable $nodes): self
     {
-        $lazyImport = ($lazyImport === NULL ? Settings::$lazyImport : $lazyImport);
-
-        return new static ($lazyImport, function ($fragment) use ($nodes) {
+        return new static (Settings::$lazyImport, function () use ($nodes) {
 
             $doc = new DOMDocument("1.0", "utf-8");
             foreach ($nodes as $n) {
                 $doc->appendChild($doc->importNode($n, TRUE));
             }
 
-            $fragment->document = $doc;
-            $fragment->xpath = new DOMXPath($doc);
+            return $doc;
         });
     }
 
@@ -83,15 +81,15 @@ class Fragment
      */
     static public function fromString (string $contents, bool $lazyParsing = NULL): self
     {
-        $lazyParsing = $lazyParsing === NULL ? Settings::$lazyParsing : $lazyParsing;
-
-        return new static ($lazyParsing, function ($fragment) use ($contents) {
+        $fragment = new static (Settings::$lazyParsing, function () use ($contents) {
 
             $doc = new DOMDocument("1.0", "utf-8");
             $doc->loadHTML($contents);
-            $fragment->document = $doc;
-            $fragment->xpath = new DOMXPath($doc);
+
+            return $doc;
         });
+
+        return $frament;
     }
 
 
@@ -103,29 +101,27 @@ class Fragment
      * но опасно для динамического контента. При значении TRUE у $lazyLoading будет применяться
      * отложенная загрузка, что тоже не очень хорошо для динамического контента.
      */
-    static public function fromFile (string $filename, bool $asumeStatic = NULL, bool $lazyLoading = NULL): self
+    static public function fromFile (string $filename): self
     {
-        $lazyLoading = $lazyLoading === NULL ? Settings::$lazyLoading : $lazyLoading;
-        $asumeStatic = $asumeStatic === NULL ? Settings::$asumeStatic : $asumeStatic;
+        return new static (Settings::$lazyLoading, function () use ($filename) {
 
-        $createDoc = function () use ($filename) {
-            $doc = new DOMDocument("1.0", "utf-8");
-            $doc->loadHTMLFile($filename);
-            return $doc;
-        };
+            $createDoc = function () use ($filename) {
 
-        return new static ($lazyLoading, function ($fragment) use ($filename, $asumeStatic, $createDoc) {
+                $doc = new DOMDocument("1.0", "utf-8");
+                $doc->loadHTMLFile($filename);
+                return $doc;
+            };
 
-            if ($asumeStatic) {
-                if (!array_key_exists($filename, self::$fileCache)) {
-                    self::$fileCache[$filename] = $createDoc();
+            if (Settings::$asumeStatic) {
+
+                $cacheKey = 'F'.$filename;
+                if (!array_key_exists($cacheKey, self::$cache)) {
+                    self::$cache[$cacheKey] = $createDoc();
                 }
-                $fragment->document = clone self::$fileCache[$filename];
-            } else {
-                $fragment->document = $createDoc();
+                return  clone self::$cache[$cacheKey];
             }
 
-            $fragment->xpath = new DOMXPath($fragment->document);
+            return $createDoc();
         });
     }
 
@@ -140,36 +136,28 @@ class Fragment
      */
     static public function fromBuffer (callable $process, bool $asumeIdempotence = NULL, bool $lazyExecution = NULL): self
     {
-        $lazyExecution = $lazyExecution === NULL ? Settings::$lazyExecution : $lazyExecution;
-        $asumeIdempotence = $asumeIdempotence === NULL ? Settings::$asumeIdempotence : $asumeIdempotence;
+        return new static (Settings::$lazyExecution, function () use ($process) {
 
-        $createDoc = function () use ($process) {
+            $createDoc = function () use ($process) {
 
-            ob_start();
-            call_user_func($process);
-            $buffer = ob_get_contents();
-            ob_end_clean();
-            $doc = new DOMDocument("1.0", "utf-8");
-            $doc->loadHTML($buffer);
-            return $doc;
-        };
+                ob_start();
+                call_user_func($process);
+                $doc = new DOMDocument("1.0", "utf-8");
+                $doc->loadHTML(ob_get_contents());
+                ob_end_clean();
+                return $doc;
+            };
 
-        return new static ($lazyExecution, function ($fragment) use ($process, $asumeIdempotence, $createDoc) {
+            if (Settings::$asumeIdempotence) {
 
-            if ($asumeIdempotence) {
-
-                $hash = spl_object_hash((object) $process);
-                if (!array_key_exists($hash, self::$bufferCache)) {
-                    self::$bufferCache[$hash] = $createDoc();
+                $cacheKey = 'B'.spl_object_hash((object) $process);
+                if (!array_key_exists($cacheKey, self::$cache)) {
+                    self::$cache[$cacheKey] = $createDoc();
                 }
-                $fragment->document = clone self::$fileCache[$hash];
-
-            } else {
-
-                $fragment->document = $createDoc();
+                return clone self::$cache[$cacheKey];
             }
 
-            $fragment->xpath = new DOMXPath($fragment->document);
+            return $createDoc();
         });
     }
 
