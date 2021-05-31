@@ -1,6 +1,12 @@
 <?php namespace Uralmedias\Linker;
 
 
+use ReflectionClass;
+
+
+/**
+ * Позволяет выполнять тонкую настройку во время выполнения.
+ */
 abstract class Settings
 {
 
@@ -22,10 +28,10 @@ abstract class Settings
     /** Влияет на работу Fragment, определяет можно ли кэшировать результат вызова функции */
     static public bool $asumeIdempotence = TRUE;
 
-    /** Путь на диске, где лежат исходники верстки */
+    /** Путь загрузки исходных файлов верстки */
     static public string $assetsPath = './';
 
-    /** Путь на диске, где происходит выполнение скриптов */
+    /** Базовый путь в корне сервера, откуда будут загружаться ресурсы */
     static public string $publicPath = './';
 
 
@@ -36,15 +42,18 @@ abstract class Settings
      * создать ссылки. Относительные пути считаются от $assetsPath, а
      * ссылки создаются в $publicPath.
      */
-    static public function assets (string ...$paths)
+    static public function assets (string ...$paths): array
     {
-        $cwd = getcwd();
         $assets = realpath(self::$assetsPath);
         $public = realpath(self::$publicPath);
-        $links = [];
 
         if ($assets !== $public) {
 
+            $cwd = getcwd();
+            $links = [];
+            $result = [];
+
+            // получить абсолютные пути для источников
             chdir($assets);
             foreach($paths as $p) {
                 if ($path = realpath($p)) {
@@ -53,16 +62,52 @@ abstract class Settings
             }
 
             chdir($public);
-            foreach ($links as $lLink => $lTarget) {
 
-                if (file_exists($lLink) and is_link($lLink)) {
-                    unlink($lLink);
+            // удалить все старые ссылки
+            $linkKeys = array_keys($links);
+            foreach ($linkKeys as $lk) {
+                if (is_link($lk)) {
+                    unlink($lk);
                 }
-                symlink($lTarget, $lLink);
             }
 
+            // удалить пустые каталоги
+            foreach ($linkKeys as $lk) {
+                rmdir(dirname($lk));
+            }
+
+            // создать новые ссылки
+            foreach ($links as $lLink => $lTarget) {
+
+                mkdir(dirname($lLink), 0777, true);
+                symlink($lTarget, $lLink);
+                $result[$lTarget] = realpath($lLink);
+            }
+
+            // вернуться в рабочую директорию
             chdir($cwd);
+            return $result;
         }
+
+        return $paths;
+    }
+
+
+    /**
+     * Позволяет сохранять и загружать состояние настроек.
+     */
+    static public function current (object $updates = NULL): object
+    {
+        $state = (new ReflectionClass(static::class))->getStaticProperties();
+
+        if ($updates !== NULL) {
+            $keys = array_keys($state);
+            foreach ($keys as $k) {
+                static::$$k = $state[$k] = $updates->$k;
+            }
+        }
+
+        return (object) $state;
     }
 
 }
