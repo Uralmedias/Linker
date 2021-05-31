@@ -230,6 +230,7 @@ class Fragment
 
         $nodes = [];
         foreach ($fragments as $f) {
+            $f->touch();
             foreach ($f->document->childNodes as $n) {
                 $nodes[] = $n;
             }
