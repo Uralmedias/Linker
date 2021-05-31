@@ -23,37 +23,38 @@ abstract class Settings
     static public bool $asumeIdempotence = TRUE;
 
     /** Путь на диске, где лежат исходники верстки */
-    static public string $sourcePath = '.';
+    static public string $assetsPath = './';
 
     /** Путь на диске, где происходит выполнение скриптов */
-    static public string $publicPath = '.';
+    static public string $publicPath = './';
 
 
     /**
      * Создает или обновляет ссылки на ресурсы в публичной директории.
      *
      * Принимает список путей файлов или каталогов, на котории нужно
-     * создать ссылки. Относительные пути считаются от $sourcePath, а
+     * создать ссылки. Относительные пути считаются от $assetsPath, а
      * ссылки создаются в $publicPath.
      */
     static public function assets (string ...$paths)
     {
         $cwd = getcwd();
-        $source = realpath(self::$sourcePath);
+        $assets = realpath(self::$assetsPath);
         $public = realpath(self::$publicPath);
         $links = [];
 
-        if ($source != $target) {
+        if ($assets !== $public) {
 
-            chdir($source);
+            chdir($assets);
             foreach($paths as $p) {
                 if ($path = realpath($p)) {
                     $links[$p] = $path;
                 }
             }
 
-            chdir($target);
+            chdir($public);
             foreach ($links as $lLink => $lTarget) {
+
                 if (file_exists($lLink) and is_link($lLink)) {
                     unlink($lLink);
                 }

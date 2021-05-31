@@ -115,6 +115,17 @@ class Fragment
     }
 
 
+    static public function fromAsset (string $filename): self
+    {
+        $cwd = getcwd();
+        chdir(Settings::$assetsPath);
+        $filename = realpath ($filename);
+        chdir($cwd);
+
+        return static::fromFile($filename);
+    }
+
+
     /**
      * Читает и разбирает стандартный вывод внутри функции.
      */
