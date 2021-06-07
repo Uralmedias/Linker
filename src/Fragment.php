@@ -1,7 +1,6 @@
 <?php namespace Uralmedias\Linker;
 
 
-use Uralmedias\Linker\Settings;
 use Uralmedias\Linker\Selector;
 use Uralmedias\Linker\Injector;
 use Uralmedias\Linker\Accessor;
@@ -15,7 +14,14 @@ use DOMDocument, DOMXPath;
 class Fragment
 {
 
-    static private $cache = [];
+    public static bool $lazyImport = TRUE;
+    public static bool $lazyParsing = TRUE;
+    public static bool $lazyLoading = TRUE;
+    public static bool $asumeStatic = TRUE;
+    public static bool $lazyExecution = TRUE;
+    public static bool $asumeIdempotence = TRUE;
+
+    private static $cache = [];
 
     private DOMDocument $document;
     private DOMXPath $xpath;
@@ -56,9 +62,9 @@ class Fragment
      * Создаёт новый фрагмент, наполняя его из любого итерируемого
      * объекта, который предоставляет узлы DOM в качестве элементов.
      */
-    static public function fromNodes (iterable $nodes): self
+    public static function fromNodes (iterable $nodes): self
     {
-        return new static (Settings::$lazyImport, function () use ($nodes) {
+        return new static (static::$lazyImport, function () use ($nodes) {
 
             $doc = new DOMDocument("1.0", "utf-8");
             foreach ($nodes as $n) {
@@ -73,9 +79,9 @@ class Fragment
     /**
      * Создаёт новый фрагмент разбирая входную строку.
      */
-    static public function fromString (string $contents): self
+    public static function fromString (string $contents): self
     {
-        $fragment = new static (Settings::$lazyParsing, function () use ($contents) {
+        $fragment = new static (static::$lazyParsing, function () use ($contents) {
 
             $doc = new DOMDocument("1.0", "utf-8");
             $doc->loadHTML($contents);
@@ -90,9 +96,9 @@ class Fragment
     /**
      * Создаёт новый фрагмент разбирая загруженный файл.
      */
-    static public function fromFile (string $filename): self
+    public static function fromFile (string $filename): self
     {
-        return new static (Settings::$lazyLoading, function () use ($filename) {
+        return new static (static::$lazyLoading, function () use ($filename) {
 
             $createDoc = function () use ($filename) {
 
@@ -101,7 +107,7 @@ class Fragment
                 return $doc;
             };
 
-            if (Settings::$asumeStatic) {
+            if (static::$asumeStatic) {
 
                 $cacheKey = 'F'.$filename;
                 if (!array_key_exists($cacheKey, self::$cache)) {
@@ -115,23 +121,12 @@ class Fragment
     }
 
 
-    static public function fromAsset (string $filename): self
-    {
-        $cwd = getcwd();
-        chdir(Settings::$assetsPath);
-        $filename = realpath ($filename);
-        chdir($cwd);
-
-        return static::fromFile($filename);
-    }
-
-
     /**
      * Читает и разбирает стандартный вывод внутри функции.
      */
-    static public function fromBuffer (callable $process): self
+    public static function fromBuffer (callable $process): self
     {
-        return new static (Settings::$lazyExecution, function () use ($process) {
+        return new static (static::$lazyExecution, function () use ($process) {
 
             $createDoc = function () use ($process) {
 
@@ -143,7 +138,7 @@ class Fragment
                 return $doc;
             };
 
-            if (Settings::$asumeIdempotence) {
+            if (static::$asumeIdempotence) {
 
                 $cacheKey = 'B'.spl_object_hash((object) $process);
                 if (!array_key_exists($cacheKey, self::$cache)) {
@@ -303,6 +298,37 @@ class Fragment
         }
 
         return new Accessor (...$nodes);
+    }
+
+
+    public function assets (array $updates = [], bool $assumeRE = FALSE): array
+    {
+        $this->touch();
+
+        $walkAssets = function (string $xpath) use ($updates, $assumeRE) {
+
+            $result = [];
+            $search = array_keys($updates);
+            $replacement = array_values($updates);
+            $list = $this->xpath->query($xpath);
+
+            foreach ($list as $l) {
+
+                $l->value = $assumeRE ?
+                    preg_replace ($search, $replacement, $l->value):
+                    str_replace ($search, $replacement, $l->value);
+
+                $result[] = $l->value;
+            }
+
+            return $result;
+        };
+
+        return array_unique(array_merge(
+            $walkAssets('//@*[name() = "src"]'),
+            $walkAssets('//@*[name() = "href"]'),
+            $walkAssets('//@*[name() = "xlink:href"]')
+        ));
     }
 
 }
