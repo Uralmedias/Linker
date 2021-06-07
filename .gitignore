@@ -3,8 +3,8 @@
 !composer.json
 !composer.lock
 !README.md
-!src/
-!src/**
+!classes/
+!classes/**
 !tests/
 !tests/**
 !examples/
