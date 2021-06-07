@@ -177,7 +177,7 @@ class Accessor
      * CSS-классы, совпадающие со строковыми ключами - удаляются, совпадающие со значениями -
      * добавляются. Другими словами, аргумент ['test1' => 'test2'] заменит класс test1 на test2.
      */
-    public function classes (array $updates = NULL): array
+    public function classes (array $updates = NULL, bool $doReplacing = FALSE, bool $assumeRE = FALSE): array
     {
         // классы могут быть только у элементов
         if ($updates !== NULL) {
@@ -185,13 +185,27 @@ class Accessor
                 if (is_a($n, DOMElement::class)) {
 
                     $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
-                    $classes = array_diff($classes, array_keys($updates));
-                    foreach ($updates as $u) {
-                        if ($u !== NULL) {
-                            array_push($classes, $u);
+                    if (!$doReplacing) {
+
+                        $classes = array_diff($classes, array_keys($updates));
+                        foreach ($updates as $u) {
+                            if ($u !== NULL) {
+                                array_push($classes, $u);
+                            }
+                        }
+
+                    } else {
+
+                        $search = array_keys($updates);
+                        $replacement = array_values($updates);
+
+                        foreach ($classes as &$c) {
+                            $c = $assumeRE ?
+                                preg_replace ($search, $replacement, $c):
+                                str_replace ($search, $replacement, $c);
                         }
                     }
-                    $n->setAttribute('class', implode(' ', $classes));
+                    $n->setAttribute('class', implode(' ', array_filter($classes)));
                 }
             }
         }
@@ -214,7 +228,7 @@ class Accessor
      * именам и значениям атрибутов. Если значение равно NULL, то атрибут с именем,
      * равным ключу, удаляется. Не указанные в аргументе атрибуты остаются без изменений.
      */
-    public function attributes (array $updates = NULL): array
+    public function attributes (array $updates = NULL, bool $nullValues = FALSE): array
     {
         // атрибуты могут быть только у элементов
         if ($updates !== NULL) {
@@ -222,7 +236,7 @@ class Accessor
                 if (is_a($n, DOMElement::class)) {
 
                     foreach ($updates as $uName => $uValue) {
-                        if ($uValue === NULL) {
+                        if (($uValue === NULL) and !$nullValues) {
                             $n->removeAttribute($uName);
                         } else {
                             $n->setAttribute($uName, $uValue);
