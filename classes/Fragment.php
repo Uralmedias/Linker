@@ -4,7 +4,7 @@
 use Uralmedias\Linker\Selector;
 use Uralmedias\Linker\Injector;
 use Uralmedias\Linker\Accessor;
-use DOMDocument, DOMXPath;
+use DOMDocument, DOMXPath, Closure;
 
 
 /**
@@ -18,6 +18,7 @@ class Fragment
     public static bool $lazyParsing = TRUE;
     public static bool $lazyLoading = TRUE;
     public static bool $asumeStatic = TRUE;
+    public static bool $cacheStrings = TRUE;
     public static bool $lazyExecution = TRUE;
     public static bool $asumeIdempotence = TRUE;
 
@@ -25,42 +26,61 @@ class Fragment
 
     private DOMDocument $document;
     private DOMXPath $xpath;
-    private $initializer = NULL;
+    private Closure $loader;
+    private bool $loaded;
 
 
-    private function __construct(bool $lazy, callable $initializer)
+    private function __construct(bool $lazy, callable $loader)
     {
-        $this->initializer = $initializer;
+        $this->loader = $loader;
+        $this->loaded = FALSE;
         if (!$lazy) {
-            $this->touch();
+            $this->fetch();
         }
     }
 
 
+    /**
+     * Превращает экземпляр в текст.
+     */
     public function __toString(): string
     {
-        $this->touch();
+        $this->query();
         return html_entity_decode($this->document->saveHTML(), ENT_HTML5);
     }
 
 
     /**
-     * Загружает и парсит данные.
+     * Правильно клонирует экземпляр.
      */
-    public function touch(): void
+    public function __clone ()
     {
-        if ($this->initializer) {
-            $doc = ($this->initializer)();
-            $this->initializer = NULL;
-            $this->document = $doc;
-            $this->xpath = new DOMXPath($doc);
+        if ($this->loaded) {
+            $this->document = clone $this->document;
+            $this->xpath = new DOMXPath($this->document);
         }
     }
 
 
     /**
-     * Создаёт новый фрагмент, наполняя его из любого итерируемого
-     * объекта, который предоставляет узлы DOM в качестве элементов.
+     * Инициализирует экземпляр при использовании ленивой инициализации.
+     */
+    public function fetch (bool $reset = FALSE): bool
+    {
+        if (!$this->loaded or $reset) {
+
+            $this->document = ($this->loader)();
+            $this->xpath = new DOMXPath($this->document);
+            $this->loaded = TRUE;
+            return TRUE;
+        }
+
+        return FALSE;
+    }
+
+
+    /**
+     * Создаёт экземпляр из коллекции DOMNode.
      */
     public static function fromNodes (iterable $nodes): self
     {
@@ -77,24 +97,36 @@ class Fragment
 
 
     /**
-     * Создаёт новый фрагмент разбирая входную строку.
+     * Создаёт экземпляр из текстовых данных.
      */
     public static function fromString (string $contents): self
     {
-        $fragment = new static (static::$lazyParsing, function () use ($contents) {
+        return new static (static::$lazyParsing, function () use ($contents) {
 
-            $doc = new DOMDocument("1.0", "utf-8");
-            $doc->loadHTML($contents);
+            $createDoc = function () use ($contents) {
 
-            return $doc;
+                $doc = new DOMDocument("1.0", "utf-8");
+                $doc->loadHTML($contents);
+                return $doc;
+            };
+
+            if (static::$cacheStrings) {
+
+                $cacheKey = 'S'.crc32($contents);
+
+                if (!array_key_exists($cacheKey, self::$cache)) {
+                    self::$cache[$cacheKey] = $createDoc();
+                }
+                return clone self::$cache[$cacheKey];
+            }
+
+            return $createDoc();
         });
-
-        return $frament;
     }
 
 
     /**
-     * Создаёт новый фрагмент разбирая загруженный файл.
+     * Создаёт экземпляр из текстового файла.
      */
     public static function fromFile (string $filename): self
     {
@@ -122,7 +154,7 @@ class Fragment
 
 
     /**
-     * Читает и разбирает стандартный вывод внутри функции.
+     * Создаёт экземпляр из выводимого функцией текста.
      */
     public static function fromBuffer (callable $process): self
     {
@@ -153,73 +185,37 @@ class Fragment
 
 
     /**
-     * Убирает лишние пробельные символы из текстовых узлов.
-     *
-     * Если $comments == TRUE, то удаляет комментарии. Если $scripts == TRUE,
-     * то работает внутри тегов <script> и <style> и может привести к поломкам.
+     * Минимизирует, убирая лишние данные.
      */
     public function minimize (bool $comments = FALSE, bool $scripts = FALSE)
     {
-        $this->touch();
-
         $q = $scripts ?
             '//text()[not(parent::pre)]':
             '//text()[not(parent::script) and not(parent::style) and not(parent::pre)]';
 
-        $list = $this->xpath->query($q);
-        foreach ($list as $l) {
-            $l->textContent = preg_replace('/\s+/', ' ', $l->textContent);
+        $nodes = $this->query($q);
+        foreach ($nodes as $n) {
+            $n->textContent = preg_replace('/\s+/', ' ', $n->textContent);
         }
 
         if ($comments) {
-            $list = $this->xpath->query('//comment()');
-            foreach ($list as $l) {
-                $l->parentNode->removeChild($l);
+            $nodes = $this->query('//comment()');
+            foreach ($nodes as $n) {
+                $n->parentNode->removeChild($n);
             }
         }
     }
 
 
     /**
-     * Перемещает выбранные узлы в новый фрагмент.
-     *
-     * **По факту - перемещает копии узлов, а оригиналы удаляет -
-     * будьте аккуратнее с полученными ранее ссылками**
+     * Создаёт новый экземпляр, вырезая часть существующего.
      */
-    public function cut (...$selectors): self
+    public function cut (string ...$selectors): self
     {
-        $this->touch();
-
-        $lists = [];
-        $nodes = [];
-
-        foreach ($selectors as $s) {
-            $lists[] = $this->xpath->query(Selector::fromValue($s));
-        }
-        foreach ($lists as $l) {
-            foreach ($l as $n) {
-                $nodes[] = $n;
-                if ($parent = $n->parentNode) {
-                    $parent->removeChild($n);
-                }
-            }
-        }
-        return static::fromNodes($nodes);
-    }
-
-
-    /**
-     * Дублирует выбранные селектором узлы в новый фрагмент
-     */
-    public function copy (mixed ...$selectors): self
-    {
-        $this->touch();
-
-        $nodes = [];
-        foreach ($selectors as $s) {
-            $list = $this->xpath->query(Selector::fromValue($s));
-            foreach ($list as $n) {
-                $nodes[] = $n;
+        $nodes = $this->query(...$selectors);
+        foreach ($nodes as $n) {
+            if ($parent = $n->parentNode) {
+                $parent->removeChild($n);
             }
         }
 
@@ -228,15 +224,24 @@ class Fragment
 
 
     /**
-     * Вставляет (копирует) узлы одного фрагмента внутрь другого.
+     * Создаёт экземпляр, копируя часть существующего.
+     */
+    public function copy (string ...$selectors): self
+    {
+        return static::fromNodes($this->query(...$selectors));
+    }
+
+
+    /**
+     * Расширяет текущий экземпляр контентом другого.
      */
     public function put (self ...$fragments): Injector
     {
-        $this->touch();
+        $this->fetch();
 
         $nodes = [];
         foreach ($fragments as $f) {
-            $f->touch();
+            $f->query();
             foreach ($f->document->childNodes as $n) {
                 $nodes[] = $n;
             }
@@ -247,17 +252,15 @@ class Fragment
 
 
     /**
-     * Втавляет текстовый узел внутрь фрагмента.
+     * Втавляет текстовый узел.
      */
     public function write (string ...$strings): Injector
     {
-        $this->touch();
+        $this->fetch();
 
         $nodes = [];
         foreach ($strings as $s) {
-            if ($str = $this->document->createTextNode($s)) {
-                $nodes[] = $str;
-            }
+            $nodes[] = $this->document->createTextNode($s);
         }
 
         return new Injector ($this->xpath, ...$nodes);
@@ -265,17 +268,15 @@ class Fragment
 
 
     /**
-     * Вставляет коментарий внутрь фрагмента.
+     * Вставляет коментарий.
      */
     public function annotate (string ...$comments): Injector
     {
-        $this->touch();
+        $this->fetch();
 
         $nodes = [];
         foreach ($comments as $c) {
-            if ($com = $this->document->createComment($c)) {
-                $nodes[] = $com;
-            }
+            $nodes[] = $this->document->createComment($c);
         }
 
         return new Injector ($this->xpath, ...$nodes);
@@ -283,42 +284,33 @@ class Fragment
 
 
     /**
-     * Получает доступ к параметров выбранных селектором узлов.
+     * Позволяет читать и изменять атрибуты элементов внутри экземпляра.
      */
-    public function nodes (...$selectors): Accessor
+    public function nodes (string ...$selectors): Accessor
     {
-        $this->touch();
-
-        $nodes = [];
-        foreach ($selectors as $s) {
-            $list = $this->xpath->query(Selector::fromValue($s));
-            foreach ($list as $n) {
-                $nodes[] = $n;
-            }
-        }
-
-        return new Accessor (...$nodes);
+        return new Accessor (...$this->query(...$selectors));
     }
 
 
+    /**
+     * Возвращает список ссылок на ресурсы из экземляра.
+     */
     public function assets (array $updates = [], bool $assumeRE = FALSE): array
     {
-        $this->touch();
-
         $walkAssets = function (string $xpath) use ($updates, $assumeRE) {
 
             $result = [];
+            $nodes = $this->query($xpath);
             $search = array_keys($updates);
             $replacement = array_values($updates);
-            $list = $this->xpath->query($xpath);
 
-            foreach ($list as $l) {
+            foreach ($nodes as $n) {
 
-                $l->value = $assumeRE ?
-                    preg_replace ($search, $replacement, $l->value):
-                    str_replace ($search, $replacement, $l->value);
+                $n->value = $assumeRE ?
+                    preg_replace ($search, $replacement, $n->value):
+                    str_replace ($search, $replacement, $n->value);
 
-                $result[] = $l->value;
+                $result[] = $n->value;
             }
 
             return $result;
@@ -329,6 +321,22 @@ class Fragment
             $walkAssets('//@*[name() = "href"]'),
             $walkAssets('//@*[name() = "xlink:href"]')
         ));
+    }
+
+
+    private function query (string ...$selectors): array
+    {
+        $this->fetch();
+
+        $nodes = [];
+        foreach ($selectors as $s) {
+            $list = $this->xpath->query(Selector::query($s));
+            foreach ($list as $n) {
+                $nodes[] = $n;
+            }
+        }
+
+        return $nodes;
     }
 
 }

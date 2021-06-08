@@ -12,35 +12,35 @@ final class SelectorTest extends TestCase
     public function testDefaults (): void
     {
         $this->expectOutputString('//*');
-        echo Selector::fromValue();
+        echo Selector::query();
     }
 
 
     public function testPositiveIndex (): void
     {
         $this->expectOutputString('/*[42]');
-        echo Selector::fromIndex(41);
+        echo Selector::index(41);
     }
 
 
     public function testNegativeIndex (): void
     {
         $this->expectOutputString('/*[last()-42]');
-        echo Selector::fromIndex(-42);
+        echo Selector::index(-42);
     }
 
 
     public function testCssToXpath (): void
     {
         $this->expectOutputString('/*[last()-42]');
-        echo Selector::fromIndex(-42);
+        echo Selector::index(-42);
     }
 
 
     public function testJustXpath (): void
     {
         $this->expectOutputString('//body/div[@class="myclass"]');
-        echo Selector::fromXPath('//body/div[@class="myclass"]');
+        echo Selector::xpath('//body/div[@class="myclass"]');
     }
 
 
@@ -54,10 +54,10 @@ final class SelectorTest extends TestCase
         );
 
         echo(
-            Selector::fromValue(41).
-            Selector::fromValue(-42).
-            Selector::fromValue('//body/div[@class="myclass"]').
-            Selector::fromValue('body.class1.class2#id')
+            Selector::query(41).
+            Selector::query(-42).
+            Selector::query('//body/div[@class="myclass"]').
+            Selector::query('body.class1.class2#id')
         );
     }
 

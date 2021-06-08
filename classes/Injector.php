@@ -39,7 +39,7 @@ class Injector
     /**
      * Импортирует узлы из документа-источника в приемник.
      */
-    public function touch ()
+    public function fetch ()
     {
         if (!$this->imported) {
             $doc = $this->target->document;
@@ -139,9 +139,9 @@ class Injector
 
     private function inject (array $selectors, callable $proc)
     {
-        $this->touch();
+        $this->fetch();
         foreach ($selectors as $s) {
-            $list = $this->target->query(Selector::fromValue($s));
+            $list = $this->target->query(Selector::query($s));
             foreach ($list as $l) {
                 foreach ($this->source as $s) {
                     $proc($l, $s);

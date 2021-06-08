@@ -8,41 +8,29 @@ use Exception;
 /**
  * Помогает интерпретировать различные способы указания узлов.
  */
-class Selector
+abstract class Selector
 {
 
-    static private array $cache = [];
-    static private CssSelectorConverter $converter;
-
-    private string $xpath;
-
-
-    private function __construct () {}
-
-
-    public function __toString(): string
-    {
-        return $this->xpath;
-    }
+    private static array $cache = [];
+    private static CssSelectorConverter $converter;
 
 
     /**
      * Определяет тип селектора автоматически на основе типа
      * и структуры аргумента.
      */
-    static public function fromValue ($value = NULL)
+    public static function query ($value = NULL): string
     {
         switch (TRUE) {
-            case is_a($value, self::class): return $value;
-            case $value === NULL: return static::fromXPath('//*');
-            case is_int($value): return static::fromIndex($value);
+            case $value === NULL: return '//*';
+            case is_int($value): return static::index($value);
         }
 
         try {
-            return static::fromCss($value);
+            return static::css($value);
         } catch (Exception $e) {}
 
-        return static::fromXPath($value);
+        return static::xpath($value);
     }
 
 
@@ -51,13 +39,13 @@ class Selector
      * индексы идут сначала и начинаются с 0, отрицательные идут
      * с конца и начинаются с единицы.
      */
-    static public function fromIndex (int $index)
+    public static function index (int $index): string
     {
         if (!array_key_exists($index, self::$cache)) {
 
             self::$cache[$index] = ($index < 0) ?
-                self::$cache[$index] = static::fromXPath('/*[last()'.$index.']'):
-                self::$cache[$index] = static::fromXPath('/*['.($index + 1).']');
+                self::$cache[$index] = '/*[last()'.$index.']':
+                self::$cache[$index] = '/*['.($index + 1).']';
         }
         return self::$cache[$index];
     }
@@ -68,12 +56,12 @@ class Selector
      *
      * **Будьте аккуратны - поддерживаются не все селекторы**
      */
-    static public function fromCss (string $css)
+    public static function css (string $css): string
     {
         if (!array_key_exists($css, self::$cache)) {
 
             self::$converter = self::$converter ?? new CssSelectorConverter();
-            self::$cache[$css] = static::fromXPath(self::$converter->toXPath($css));
+            self::$cache[$css] = self::$converter->toXPath($css);
         }
         return self::$cache[$css];
     }
@@ -82,11 +70,9 @@ class Selector
     /**
      * Просто использует указанный XPath для выбора узлов.
      */
-    static public function fromXPath (string $xpath)
+    public static function xpath (string $xpath): string
     {
-        $selector = new Selector ();
-        $selector->xpath = $xpath;
-        return $selector;
+        return $xpath;
     }
 
 }
