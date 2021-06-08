@@ -1,6 +1,7 @@
 <?php namespace Uralmedias\Linker;
 
 
+use Uralmedias\Linker\Accessor;
 use Uralmedias\Linker\Selector;
 use DOMNode, DOMXPath;
 
@@ -54,13 +55,11 @@ class Injector
     /**
      * Вставляет контент сразу перед селектором.
      */
-    public function before (...$selectors)
+    public function before (...$selectors): Accessor
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
-            if ($parent = $anchor->parentNode) {
-                $parent->insertBefore($source->cloneNode(true), $anchor);
-            }
+            return $anchor->parentNode->insertBefore($source->cloneNode(true), $anchor);
         });
     }
 
@@ -68,13 +67,13 @@ class Injector
     /**
      * Вставляет контент сразу после селектора.
      */
-    public function after (...$selectors)
+    public function after (...$selectors): Accessor
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
-            if ($parent = $anchor->parentNode) {
-                $parent->insertBefore($anchor, $parent->insertBefore($source->cloneNode(true), $anchor));
-            }
+            $source = $anchor->parentNode->insertBefore($source->cloneNode(true), $anchor);
+            $anchor->parentNode->insertBefore($anchor, $source);
+            return $source;
         });
     }
 
@@ -82,14 +81,14 @@ class Injector
     /**
      * Вставляет контент на место первого потомка селектора.
      */
-    public function up (...$selectors)
+    public function up (...$selectors): Accessor
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
             if ($first = $anchor->firstChild) {
-                $anchor->insertBefore($source->cloneNode(true), $first);
+                return $anchor->insertBefore($source->cloneNode(true), $first);
             } else {
-                $anchor->appendChild($source->cloneNode(true));
+                return $anchor->appendChild($source->cloneNode(true));
             }
         });
     }
@@ -98,11 +97,11 @@ class Injector
     /**
      * Вставляет контент на место последнего потомка селектора.
      */
-    public function down (...$selectors)
+    public function down (...$selectors): Accessor
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
-            $anchor->appendChild($source->cloneNode(true));
+            return $anchor->appendChild($source->cloneNode(true));
         });
     }
 
@@ -110,14 +109,14 @@ class Injector
     /**
      * Заменяет контентом содержимое селектора.
      */
-    public function into (...$selectors)
+    public function into (...$selectors): Accessor
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
             foreach ($anchor->childNodes as $c) {
                 $anchor->removeChild($c);
             }
-            $anchor->appendChild($source->cloneNode(true));
+            return $anchor->appendChild($source->cloneNode(true));
         });
     }
 
@@ -125,14 +124,13 @@ class Injector
     /**
      * Заменяет селектор контентом.
      */
-    public function to (...$selectors)
+    public function to (...$selectors): Accessor
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
-            if ($parent = $anchor->parentNode) {
-                $parent->insertBefore($source->cloneNode(true), $anchor);
-                $parent->removeChild($anchor);
-            }
+            $source = $anchor->parentNode->insertBefore($source->cloneNode(true), $anchor);
+            $anchor->parentNode->removeChild($anchor);
+            return $source;
         });
     }
 
@@ -140,14 +138,18 @@ class Injector
     private function inject (array $selectors, callable $proc)
     {
         $this->fetch();
+
+        $nodes = [];
         foreach ($selectors as $s) {
             $list = $this->target->query(Selector::query($s));
             foreach ($list as $l) {
                 foreach ($this->source as $s) {
-                    $proc($l, $s);
+                    $nodes[] = $proc($l, $s);
                 }
             }
         }
+
+        return new Accessor (...$nodes);
     }
 
 }

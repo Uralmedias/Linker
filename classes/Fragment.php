@@ -232,6 +232,12 @@ class Fragment
     }
 
 
+    public function move (string ...$selectors): Injector
+    {
+        return $this->put($this->cut(...$selectors));
+    }
+
+
     /**
      * Расширяет текущий экземпляр контентом другого.
      */
