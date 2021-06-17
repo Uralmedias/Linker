@@ -1,8 +1,8 @@
-<?php namespace Uralmedias\Linker;
+<?php namespace Uralmedias\Linker\Layout;
 
 
-use Uralmedias\Linker\Accessor;
-use Uralmedias\Linker\Selector;
+use Uralmedias\Linker\Select;
+use Uralmedias\Linker\Layout\NodeProperties;
 use DOMNode, DOMXPath;
 
 
@@ -10,12 +10,12 @@ use DOMNode, DOMXPath;
  * Класс позволяет выбирать места размещения перед вставкой узлов в DOM.
  *
  * Может использоваться самостоятельно вместе с PHP DOM, но спроектирован
- * как вспомогательный внутренний класс для Fragment для оборачивания
+ * как вспомогательный внутренний класс для LayoutFragment для оборачивания
  * нативных методов DOM.
  *
  * **Избегайте длительного хранения экземпляров, т.к. ссылки на узлы могут портится.**
  */
-class Injector
+class NodeRegrouping
 {
 
     public static bool $lazyImport = TRUE;
@@ -55,7 +55,7 @@ class Injector
     /**
      * Вставляет контент сразу перед селектором.
      */
-    public function before (...$selectors): Accessor
+    public function before (...$selectors): NodeProperties
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
@@ -67,7 +67,7 @@ class Injector
     /**
      * Вставляет контент сразу после селектора.
      */
-    public function after (...$selectors): Accessor
+    public function after (...$selectors): NodeProperties
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
@@ -81,7 +81,7 @@ class Injector
     /**
      * Вставляет контент на место первого потомка селектора.
      */
-    public function up (...$selectors): Accessor
+    public function up (...$selectors): NodeProperties
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
@@ -97,7 +97,7 @@ class Injector
     /**
      * Вставляет контент на место последнего потомка селектора.
      */
-    public function down (...$selectors): Accessor
+    public function down (...$selectors): NodeProperties
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
@@ -109,7 +109,7 @@ class Injector
     /**
      * Заменяет контентом содержимое селектора.
      */
-    public function into (...$selectors): Accessor
+    public function into (...$selectors): NodeProperties
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
@@ -124,7 +124,7 @@ class Injector
     /**
      * Заменяет селектор контентом.
      */
-    public function to (...$selectors): Accessor
+    public function to (...$selectors): NodeProperties
     {
         return $this->inject($selectors, function ($anchor, $source)
         {
@@ -141,7 +141,7 @@ class Injector
 
         $nodes = [];
         foreach ($selectors as $s) {
-            $list = $this->target->query(Selector::query($s));
+            $list = $this->target->query(Select::auto($s));
             foreach ($list as $l) {
                 foreach ($this->source as $s) {
                     $nodes[] = $proc($l, $s);
@@ -149,7 +149,7 @@ class Injector
             }
         }
 
-        return new Accessor (...$nodes);
+        return new NodeProperties (...$nodes);
     }
 
 }

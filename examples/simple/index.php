@@ -8,13 +8,13 @@ require_once __DIR__ .'/../../../linker/vendor/autoload.php';
 
 // Главный класс библиотеки, который загружает
 // фрагменты верстки и позволяет работать с ними
-use Uralmedias\Linker\Fragment;
+use Uralmedias\Linker\LayoutFragment;
 
 
 // Загружаем верстку из файла. Также верстка может быть загружена
 // из сети, из строки, из стандартного вывода подпрограммы,
 // а еще - из ранее созданных узлов DOM. (см. комментарии в коде)
-$index = Fragment::fromFile('markup.html');
+$index = LayoutFragment::fromFile('markup.html');
 
 // Вырезаем блоки с классом .w3-row.w3-padding-64 и изапоминаеи
 // первый из них в переменную $row - он пригодится нам, чтобы

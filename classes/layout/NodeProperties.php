@@ -1,4 +1,4 @@
-<?php namespace Uralmedias\Linker;
+<?php namespace Uralmedias\Linker\Layout;
 
 
 use DOMNode, DOMCharacterData, DOMAttr, DOMElement;
@@ -8,12 +8,12 @@ use DOMNode, DOMCharacterData, DOMAttr, DOMElement;
  * Класс даёт доступ к управлению основными параметрами узлов.
  *
  * Может использоваться самостоятельно вместе с PHP DOM, но спроектирован
- * как вспомогательный внутренний класс для Fragment и Injector для
+ * как вспомогательный внутренний класс для LayoutFragment и NodeRegrouping для
  * оборачивания нативных методов DOM.
  *
  * **Избегайте длительного хранения экземпляров, т.к. ссылки на узлы могут портится.**
  */
-class Accessor
+class NodeProperties
 {
 
     private array $nodes = [];

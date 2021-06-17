@@ -13,7 +13,8 @@
     },
     "autoload": {
         "psr-4": {
-            "Uralmedias\\Linker\\": "classes/"
+            "Uralmedias\\Linker\\": "classes/",
+            "Uralmedias\\Linker\\Layout\\": "classes/layout"
         }
     },
     "require-dev": {
