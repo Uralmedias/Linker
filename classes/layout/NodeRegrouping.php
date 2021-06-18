@@ -7,48 +7,23 @@ use DOMNode, DOMXPath;
 
 
 /**
- * Класс позволяет выбирать места размещения перед вставкой узлов в DOM.
- *
- * Может использоваться самостоятельно вместе с PHP DOM, но спроектирован
- * как вспомогательный внутренний класс для LayoutFragment для оборачивания
- * нативных методов DOM.
- *
- * **Избегайте длительного хранения экземпляров, т.к. ссылки на узлы могут портится.**
+ * **Интерфейс для перемещения узлов**.
+ * Создаётся в процессе редактирования структуры как завершающий этап
+ * вставки. Позволяет выбрать место размещения новых узлов. Длительное
+ * хранение экземпляров не желательно, так как используемые ссылки на
+ * узлы могут портится как самим экземпляром, так и внешними факторами.
  */
 class NodeRegrouping
 {
 
-    public static bool $lazyImport = TRUE;
-    public static bool $asumeStatic = TRUE;
-
-    private DOMXpath $target;
-    private array $source = [];
-    private bool $imported = FALSE;
+    private DOMXpath $xpath;
+    private DOMDocument $document;
 
 
-    public function __construct(DOMXPath $target, DOMNode ...$source)
+    public function __construct(DOMDocument $document, DOMNode ...$source)
     {
-        $this->target = $target;
-        $this->source = array_filter(array_values($source));
-
-        if (!static::$lazyImport) {
-            $this->touch();
-        }
-    }
-
-
-    /**
-     * Импортирует узлы из документа-источника в приемник.
-     */
-    public function fetch ()
-    {
-        if (!$this->imported) {
-            $doc = $this->target->document;
-            foreach ($this->source as &$s) {
-                $s = $doc->importNode($s, true);
-            }
-            $this->imported = static::$asumeStatic;
-        }
+        $this->document = $document;
+        $this->xpath = new DOMXPath();
     }
 
 
@@ -137,11 +112,9 @@ class NodeRegrouping
 
     private function inject (array $selectors, callable $proc)
     {
-        $this->fetch();
-
         $nodes = [];
         foreach ($selectors as $s) {
-            $list = $this->target->query(Select::auto($s));
+            $list = $this->xpath->query(Select::auto($s));
             foreach ($list as $l) {
                 foreach ($this->source as $s) {
                     $nodes[] = $proc($l, $s);
