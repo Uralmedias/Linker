@@ -3,7 +3,7 @@
 
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeProperties;
-use DOMNode, DOMXPath;
+use DOMDocument, DOMNode, DOMXPath;
 
 
 /**
@@ -18,12 +18,18 @@ class NodeRegrouping
 
     private DOMXpath $xpath;
     private DOMDocument $document;
+    private array $source;
 
 
     public function __construct(DOMDocument $document, DOMNode ...$source)
     {
         $this->document = $document;
-        $this->xpath = new DOMXPath();
+        $this->xpath = new DOMXPath($document);
+
+        $this->source = [];
+        foreach ($source as $s) {
+            array_push($this->source, $document->importNode($s, TRUE));
+        }
     }
 
 

@@ -19,7 +19,7 @@ final class NodeRegroupingTest extends TestCase
         $domY->loadHTMLFile(__DIR__.'/noderegroupingtest/modified.html');
 
         $xpath = new DOMXPath($domX);
-        $NodeRegrouping = new NodeRegrouping($xpath, ...$xpath->query('//*[@class="source"]'));
+        $NodeRegrouping = new NodeRegrouping($domX, ...$xpath->query('//*[@class="source"]'));
         $NodeRegrouping->up('.target0');
         $NodeRegrouping->down('.target0');
         $NodeRegrouping->before('.target1');

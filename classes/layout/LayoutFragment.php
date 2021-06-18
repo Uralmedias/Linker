@@ -50,15 +50,13 @@ class LayoutFragment
             '//text()[not(parent::pre)]':
             '//text()[not(parent::script) and not(parent::style) and not(parent::pre)]';
 
-        $nodes = $this->query($q);
-        foreach ($nodes as $n) {
-            $n->textContent = preg_replace('/\s+/', ' ', $n->textContent);
+        foreach ($this->query($q) as $node) {
+            $node->textContent = preg_replace('/\s+/', ' ', $node->textContent);
         }
 
         if ($comments) {
-            $nodes = $this->query('//comment()');
-            foreach ($nodes as $n) {
-                $n->parentNode->removeChild($n);
+            foreach ($this->query('//comment()') as $node) {
+                $node->parentNode->removeChild($node);
             }
         }
     }
@@ -85,7 +83,7 @@ class LayoutFragment
      */
     public function copy (...$selectors): self
     {
-        return static::fromNodes($this->query(...$selectors));
+        return Layout::fromNodes(...$this->query(...$selectors));
     }
 
 
@@ -98,17 +96,16 @@ class LayoutFragment
     /**
      * Расширяет текущий экземпляр контентом другого.
      */
-    public function put (self ...$LayoutFragments): NodeRegrouping
+    public function put (self ...$fragments): NodeRegrouping
     {
         $nodes = [];
-        foreach ($LayoutFragments as $f) {
-            $f->query();
-            foreach ($f->document->childNodes as $n) {
-                $nodes[] = $n;
+        foreach ($fragments as $f) {
+            foreach ($f->document->childNodes as $node) {
+                $nodes[] = $node;
             }
         }
 
-        return new NodeRegrouping ($this->xpath, ...$nodes);
+        return new NodeRegrouping ($this->document, ...$nodes);
     }
 
 
@@ -122,7 +119,7 @@ class LayoutFragment
             $nodes[] = $this->document->createTextNode($s);
         }
 
-        return new NodeRegrouping ($this->xpath, ...$nodes);
+        return new NodeRegrouping ($this->document, ...$nodes);
     }
 
 
@@ -136,7 +133,7 @@ class LayoutFragment
             $nodes[] = $this->document->createComment($c);
         }
 
-        return new NodeRegrouping ($this->xpath, ...$nodes);
+        return new NodeRegrouping ($this->document, ...$nodes);
     }
 
 
@@ -157,17 +154,16 @@ class LayoutFragment
         $walkAssets = function (string $xpath) use ($updates, $assumeRE) {
 
             $result = [];
-            $nodes = $this->query($xpath);
             $search = array_keys($updates);
             $replacement = array_values($updates);
 
-            foreach ($nodes as $n) {
+            foreach ($this->query($xpath) as $node) {
 
-                $n->value = $assumeRE ?
-                    preg_replace ($search, $replacement, $n->value):
-                    str_replace ($search, $replacement, $n->value);
+                $node->value = $assumeRE ?
+                    preg_replace ($search, $replacement, $node->value):
+                    str_replace ($search, $replacement, $node->value);
 
-                $result[] = $n->value;
+                $result[] = $node->value;
             }
 
             return $result;
@@ -181,13 +177,15 @@ class LayoutFragment
     }
 
 
-    private function query (...$selectors): Traversable
+    private function query (...$selectors): array
     {
+        $result = [];
         foreach ($selectors as $s) {
             foreach ($this->xpath->query(Select::auto($s)) as $node) {
-                yield $node;
+                array_push($result, $node);
             }
         }
+        return $result;
     }
 
 }
