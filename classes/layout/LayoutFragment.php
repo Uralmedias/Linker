@@ -1,6 +1,7 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 
+use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeRegrouping;
 use Uralmedias\Linker\Layout\NodeProperties;
@@ -63,29 +64,29 @@ class LayoutFragment
     /**
      * Создаёт новый экземпляр, вырезая часть существующего.
      */
-    public function cut (string ...$selectors): self
+    public function cut (...$selectors): self
     {
-        $nodes = $this->query(...$selectors);
-        foreach ($nodes as $n) {
-            if ($parent = $n->parentNode) {
-                $parent->removeChild($n);
-            }
+        $nodes = [];
+        foreach ($this->query(...$selectors) as $node) {
+
+            $nodes[] = $node;
+            $node->parentNode->removeChild($node);
         }
 
-        return static::fromNodes($nodes);
+        return Layout::fromNodes(...$nodes);
     }
 
 
     /**
      * Создаёт экземпляр, копируя часть существующего.
      */
-    public function copy (string ...$selectors): self
+    public function copy (...$selectors): self
     {
         return static::fromNodes($this->query(...$selectors));
     }
 
 
-    public function move (string ...$selectors): NodeRegrouping
+    public function move (...$selectors): NodeRegrouping
     {
         return $this->put($this->cut(...$selectors));
     }
@@ -96,8 +97,6 @@ class LayoutFragment
      */
     public function put (self ...$LayoutFragments): NodeRegrouping
     {
-        $this->fetch();
-
         $nodes = [];
         foreach ($LayoutFragments as $f) {
             $f->query();
@@ -115,8 +114,6 @@ class LayoutFragment
      */
     public function write (string ...$strings): NodeRegrouping
     {
-        $this->fetch();
-
         $nodes = [];
         foreach ($strings as $s) {
             $nodes[] = $this->document->createTextNode($s);
