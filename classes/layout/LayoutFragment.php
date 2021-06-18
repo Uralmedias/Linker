@@ -21,7 +21,7 @@ class LayoutFragment
     private DOMXPath $xpath;
 
 
-    public function __construct(DOMDocument $document)
+    public function __construct (DOMDocument $document)
     {
         $this->document = $document;
         $this->xpath = new DOMXPath($document);
@@ -44,7 +44,7 @@ class LayoutFragment
     /**
      * Минимизирует, убирая лишние данные.
      */
-    public function minimize (bool $comments = FALSE, bool $scripts = FALSE)
+    public function minimize (bool $comments = FALSE, bool $scripts = FALSE): void
     {
         $q = $scripts ?
             '//text()[not(parent::pre)]':
@@ -174,6 +174,34 @@ class LayoutFragment
             $walkAssets('//@*[name() = "href"]'),
             $walkAssets('//@*[name() = "xlink:href"]')
         ));
+    }
+
+
+    public function reverse (...$selectors): NodeProperties
+    {
+        $nodes = $this->query(...$selectors);
+        $keys = array_keys($nodes);
+        $order = array_combine($keys, array_reverse($keys));
+
+        foreach ($order as $current => $next) {
+            $this->document->replaceNode($nodes[$current], $nodes[$next]);
+        }
+
+        return new NodeProperties (...$nodes);
+    }
+
+
+    public function randomize (...$selectors): NodeProperties
+    {
+        $nodes = $this->query(...$selectors);
+        $keys = array_keys($nodes);
+        $order = array_combine($keys, shuffle($keys));
+
+        foreach ($order as $current => $next) {
+            $this->document->replaceNode($nodes[$current], $nodes[$next]);
+        }
+
+        return new NodeProperties (...$nodes);
     }
 
 
