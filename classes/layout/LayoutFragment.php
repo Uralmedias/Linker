@@ -177,31 +177,57 @@ class LayoutFragment
     }
 
 
+    /**
+     * Переворачивает порядок следования узлов.
+     */
     public function reverse (...$selectors): NodeProperties
     {
         $nodes = $this->query(...$selectors);
-        $keys = array_keys($nodes);
-        $order = array_combine($keys, array_reverse($keys));
 
-        foreach ($order as $current => $next) {
-            $this->document->replaceNode($nodes[$current], $nodes[$next]);
+        $result = [];
+        while ($nodeX = array_shift($nodes) and ($nodeY = array_pop($nodes))) {
+
+            $parentX = $nodeX->parentNode;
+            $parentY = $nodeY->parentNode;
+            $nodeZ = $nodeY->nextSibling;
+
+            $result[] = $parentX->insertBefore($nodeY, $nodeX);
+            $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
-        return new NodeProperties (...$nodes);
+        return new NodeProperties (...$result);
     }
 
 
+    /**
+     * Меняет узлы между собой в случайном порядке.
+     */
     public function randomize (...$selectors): NodeProperties
     {
         $nodes = $this->query(...$selectors);
-        $keys = array_keys($nodes);
-        $order = array_combine($keys, shuffle($keys));
+        shuffle($nodes);
 
-        foreach ($order as $current => $next) {
-            $this->document->replaceNode($nodes[$current], $nodes[$next]);
+        $result = [];
+        while ($nodeX = array_shift($nodes) and ($nodeY = array_shift($nodes))) {
+
+            $parentX = $nodeX->parentNode;
+            $parentY = $nodeY->parentNode;
+            $nodeZ = $nodeY->nextSibling;
+
+            $result[] = $parentX->insertBefore($nodeY, $nodeX);
+            $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
-        return new NodeProperties (...$nodes);
+        return new NodeProperties (...$result);
+    }
+
+
+    /**
+     * Пересчитывает узлы, выбранные селекторами
+     */
+    public function count (...$selectors): int
+    {
+        return count($this->query(...$selectors));
     }
 
 
