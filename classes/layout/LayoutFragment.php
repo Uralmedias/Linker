@@ -9,10 +9,13 @@ use DOMDocument, DOMXPath, Traversable;
 
 
 /**
- * Контейнер для шаблона разметки.
- * Владеет экземпляром DOMDocument и служит адаптером к его API. Может быть
- * преобразован в строку для вывода, при клонировании копирует имеющийся
- * DOMDocument. Может быть инстанциирован при помощи фасада Layout
+ * **Фрагмент кода разметки**
+ *
+ * Хранит структуру файла или участка кода разметки, которую можно
+ * использовать для извлечения значений и формирования вывода.
+ *
+ * Экземпляр возвращается методами `fromNodes`, `fromDocument`,
+ * `fromHTML`, `fromFile`, `fromOutput` фасада `Layout`.
  */
 class LayoutFragment
 {
@@ -21,13 +24,19 @@ class LayoutFragment
     private DOMXPath $xpath;
 
 
+    /**
+     * Использует копию экземпляра DOMDocument.
+     */
     public function __construct (DOMDocument $document)
     {
-        $this->document = $document;
-        $this->xpath = new DOMXPath($document);
+        $this->document = clone $document;
+        $this->xpath = new DOMXPath($this->document);
     }
 
 
+    /**
+     * Копирует данные вместе с экземпляром.
+     */
     public function __clone ()
     {
         $this->document = clone $this->document;
@@ -35,6 +44,9 @@ class LayoutFragment
     }
 
 
+    /**
+     * Выводит контент.
+     */
     public function __toString(): string
     {
         return html_entity_decode($this->document->saveHTML(), ENT_HTML5);

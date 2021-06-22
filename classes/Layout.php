@@ -6,7 +6,8 @@ use DOMDocument, DOMNode;
 
 
 /**
- * Создаёт фрагменты разметки.
+ * **Загружает фрагменты разметки**
+ *
  * Фасад, который служит точкой входа во все операции с исходным кодом. Созданные
  * фрагменты не привязаны к данным, из которых они создаются, чтобы обеспечить
  * целостность и ожидаемое поведение во время обработки.
@@ -15,7 +16,7 @@ abstract class Layout
 {
 
     /**
-     * Из набора узлов DOM.
+     * Создать фрагмент из набора узлов DOM.
      */
     public static function fromNodes (DOMNode ...$nodes): LayoutFragment
     {
@@ -29,18 +30,16 @@ abstract class Layout
 
 
     /**
-     * Из документа DOM.
+     * Создать фрагмент из документа DOM.
      */
     public static function fromDocument (DOMDocument $document): LayoutFragment
     {
-        $document = clone $document;
-
         return new LayoutFragment ($document);
     }
 
 
     /**
-     * Из произвольной сырой строки.
+     * Создать фрагмент из строки, содержащей разметку.
      */
     public static function fromHTML (string $contents): LayoutFragment
     {
@@ -52,7 +51,7 @@ abstract class Layout
 
 
     /**
-     * Из локального файла или URL.
+     * Создать фрагмент из локального файла или URL.
      */
     public static function fromFile (string $filename): LayoutFragment
     {
@@ -64,7 +63,7 @@ abstract class Layout
 
 
     /**
-     * Из буфера вывода при выполнении функции.
+     * Создать фрагмент из буфера вывода при выполнении функции.
      */
     public static function fromOutput (callable $process): LayoutFragment
     {

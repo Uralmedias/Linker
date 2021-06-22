@@ -10,10 +10,10 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testMinimize ()
     {
-        $fragment1 = new LayoutFragment (clone $this->document);
-        $fragment2 = new LayoutFragment (clone $this->document);
-        $fragment3 = new LayoutFragment (clone $this->document);
-        $fragment4 = new LayoutFragment (clone $this->document);
+        $fragment1 = new LayoutFragment ($this->document);
+        $fragment2 = new LayoutFragment ($this->document);
+        $fragment3 = new LayoutFragment ($this->document);
+        $fragment4 = new LayoutFragment ($this->document);
         $fragment1->minimize(FALSE, FALSE);
         $fragment2->minimize(TRUE, FALSE);
         $fragment3->minimize(FALSE, TRUE);
