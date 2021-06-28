@@ -15,6 +15,10 @@ use DOMDocument, DOMNode;
 abstract class Layout
 {
 
+    private static array $htmlCache = [];
+    private static array $fileCache = [];
+
+
     /**
      * Создать фрагмент из набора узлов DOM.
      */
@@ -43,9 +47,19 @@ abstract class Layout
      */
     public static function fromHTML (string $contents): LayoutFragment
     {
+        if ($cacheKey = md5($contents)) {
+            if (!isset(self::$htmlCache[$cacheKey])) {
+
+                $document = new DOMDocument("1.0", "utf-8");
+                $document->loadHTML($contents);
+                self::$htmlCache[$cacheKey] = $document;
+            }
+
+            return new LayoutFragment (self::$htmlCache[$cacheKey]);
+        }
+
         $document = new DOMDocument("1.0", "utf-8");
         $document->loadHTML($contents);
-
         return new LayoutFragment ($document);
     }
 
@@ -55,9 +69,22 @@ abstract class Layout
      */
     public static function fromFile (string $filename): LayoutFragment
     {
+        if ($cacheKey = realpath($filename)) {
+            if (!isset(self::$fileCache[$cacheKey]) or (self::$fileCache[$cacheKey]['time'] !== fileatime($filename))) {
+
+                $document = new DOMDocument("1.0", "utf-8");
+                $document->loadHTMLFile($filename);
+                self::$fileCache[$cacheKey] = [
+                    'time' => fileatime($filename),
+                    'data' => $document
+                ];
+            }
+
+            return new LayoutFragment (clone self::$fileCache[$cacheKey]['data']);
+        }
+
         $document = new DOMDocument("1.0", "utf-8");
         $document->loadHTMLFile($filename);
-
         return new LayoutFragment ($document);
     }
 
@@ -71,10 +98,10 @@ abstract class Layout
         ob_start();
 
         call_user_func($process);
-        $document->loadHTML(ob_get_contents());
+        $fragment = static::fromHTML(ob_get_contents());
         ob_end_clean();
 
-        return new LayoutFragment ($document);
+        return $fragment;
     }
 
 }

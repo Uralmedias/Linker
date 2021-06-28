@@ -1,0 +1,1 @@
+descendant-or-self::*[(@class and contains(concat(' ', normalize-space(@class), ' '), ' multi ')) and (@class and contains(concat(' ', normalize-space(@class), ' '), ' class '))]

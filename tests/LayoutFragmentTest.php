@@ -2,18 +2,18 @@
 
 
 use Uralmedias\Linker\Layout\LayoutFragment;
-use Uralmedias\Linker\Tests\AbstractTest;
+use Uralmedias\Linker\Tests\AbstractTestCase;
 
 
-class LayoutFragmentTest extends AbstractTest
+class LayoutFragmentTest extends AbstractTestCase
 {
 
     public function testMinimize ()
     {
-        $fragment1 = new LayoutFragment ($this->document);
-        $fragment2 = new LayoutFragment ($this->document);
-        $fragment3 = new LayoutFragment ($this->document);
-        $fragment4 = new LayoutFragment ($this->document);
+        $fragment1 = new LayoutFragment (clone $this->exampleDocument);
+        $fragment2 = new LayoutFragment (clone $this->exampleDocument);
+        $fragment3 = new LayoutFragment (clone $this->exampleDocument);
+        $fragment4 = new LayoutFragment (clone $this->exampleDocument);
         $fragment1->minimize(FALSE, FALSE);
         $fragment2->minimize(TRUE, FALSE);
         $fragment3->minimize(FALSE, TRUE);
@@ -28,7 +28,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testCut ()
     {
-        $donnor = new LayoutFragment ($this->document);
+        $donnor = new LayoutFragment ($this->exampleDocument);
         $piece = $donnor->cut('ul.b_list');
 
         $this->assertNoRegression($donnor, 'donnor.html');
@@ -38,7 +38,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testCopy ()
     {
-        $donnor = new LayoutFragment ($this->document);
+        $donnor = new LayoutFragment ($this->exampleDocument);
         $piece = $donnor->copy('ul.b_list');
 
         $this->assertNoRegression($donnor, 'donnor.html');
@@ -48,7 +48,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testMove ()
     {
-        $fragment = new LayoutFragment ($this->document);
+        $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->move('ul.b_list .b_list__item')->up('ol.b_list');
 
         $this->assertNoRegression($fragment, 'result.html');
@@ -57,7 +57,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testPut ()
     {
-        $fragment = new LayoutFragment ($this->document);
+        $fragment = new LayoutFragment ($this->exampleDocument);
         $piece1 = $fragment->copy('ul.b_list .b_list__item');
         $piece2 = $fragment->copy('ol.b_list .b_list__item');
         $fragment->put($piece1)->up('ol.b_list');
@@ -69,7 +69,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testWrite ()
     {
-        $fragment = new LayoutFragment ($this->document);
+        $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->write('Test LayoutFragment::write!')->after('p');
 
         $this->assertNoRegression($fragment, 'result.html');
@@ -78,7 +78,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testAnnotate ()
     {
-        $fragment = new LayoutFragment ($this->document);
+        $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->write('Test LayoutFragment::annotate!')->after('p');
 
         $this->assertNoRegression($fragment, 'result.html');
@@ -87,16 +87,16 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testNodes ()
     {
-        $fragment = new LayoutFragment ($this->document);
+        $fragment = new LayoutFragment ($this->exampleDocument);
         $this->assertNoRegression($fragment->nodes('p')->value(), 'result.txt');
     }
 
 
     public function testAssets ()
     {
-        $fragmentDefault = new LayoutFragment (clone $this->document);
-        $fragmentReplace = new LayoutFragment (clone $this->document);
-        $fragmentRegex = new LayoutFragment (clone $this->document);
+        $fragmentDefault = new LayoutFragment (clone $this->exampleDocument);
+        $fragmentReplace = new LayoutFragment (clone $this->exampleDocument);
+        $fragmentRegex = new LayoutFragment (clone $this->exampleDocument);
 
         $default = $fragmentDefault->assets();
         $replace = $fragmentReplace->assets(['google.com' => 'example.com']);
@@ -110,7 +110,7 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testReverse ()
     {
-        $fragment = new LayoutFragment ($this->document);
+        $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->reverse('.b_heading__title');
         $fragment->reverse('.b_list__item');
 
@@ -120,11 +120,11 @@ class LayoutFragmentTest extends AbstractTest
 
     public function testRandomize ()
     {
-        $fragmentX = new LayoutFragment (clone $this->document);
+        $fragmentX = new LayoutFragment (clone $this->exampleDocument);
         $fragmentX->randomize('.b_heading__title');
         $fragmentX->randomize('.b_list__item');
 
-        $fragmentY = new LayoutFragment (clone $this->document);
+        $fragmentY = new LayoutFragment (clone $this->exampleDocument);
         $fragmentY->randomize('.b_heading__title');
         $fragmentY->randomize('.b_list__item');
 

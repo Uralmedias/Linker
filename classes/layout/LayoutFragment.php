@@ -29,7 +29,7 @@ class LayoutFragment
      */
     public function __construct (DOMDocument $document)
     {
-        $this->document = clone $document;
+        $this->document = $document;
         $this->xpath = new DOMXPath($this->document);
     }
 
