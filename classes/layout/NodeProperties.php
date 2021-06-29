@@ -146,10 +146,9 @@ class NodeProperties
             foreach ($rules as $r) {
                 $r = explode (':', $r);
                 if (count($r) == 2) {
-                    $style[$r[0]] = $r[1];
+                    $styles[trim($r[0])] = trim($r[1]);
                 }
             }
-
             return $styles;
         };
 
@@ -158,23 +157,32 @@ class NodeProperties
             foreach ($this->nodes as $n) {
                 if (is_a($n, DOMElement::class)) {
 
-                    $styles = $parseStyle($n);
+                    $currentStyle = $parseStyle($n);
                     foreach ($updates as $uName => $uValue) {
-                        $styles[$uName] = $uValue;
+                        if ($uValue === NULL) {
+                            unset($currentStyle[$uName]);
+                        } else {
+                            $currentStyle[$uName] = $uValue;
+                        }
                     }
+
+                    $style = '';
+                    foreach ($currentStyle as $sName => $sValue) {
+                        $style .= "$sName: $sValue;";
+                    }
+                    $n->setAttribute('style', $style);
                 }
             }
         }
 
         // возврат значения
-        if ($updates !== NULL) {
-            foreach ($this->nodes as $n) {
-                if (is_a($n, DOMElement::class)) {
-
-                    return $parseStyle($n);
-                }
+        foreach ($this->nodes as $n) {
+            if (is_a($n, DOMElement::class)) {
+                return $parseStyle($n);
             }
         }
+
+        return [];
     }
 
 

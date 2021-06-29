@@ -1,0 +1,11 @@
+array (
+  0 => 
+  array (
+    'border' => '1px dotted gray',
+    'padding' => '5px',
+  ),
+  1 => 
+  array (
+    'border' => '1px dashed green',
+  ),
+)
