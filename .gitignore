@@ -2,6 +2,7 @@
 !.gitignore
 !composer.json
 !composer.lock
+!phpunit.xml
 !README.md
 !classes/
 !classes/**
