@@ -3,7 +3,7 @@
 
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeProperties;
-use DOMDocument, DOMNode, DOMXPath;
+use DOMNode, DOMXPath, Generator;
 
 
 /**
@@ -24,19 +24,21 @@ use DOMDocument, DOMNode, DOMXPath;
 class NodeRegrouping
 {
 
-    private DOMXpath $xpath;
-    private DOMDocument $document;
-    private array $source;
+    private DOMXpath $target;
+    private array $nodes = [];
 
 
-    public function __construct(DOMDocument $document, DOMNode ...$source)
+    public function __construct (DOMXPath $target, DOMNode ...$nodes)
     {
-        $this->document = $document;
-        $this->xpath = new DOMXPath($document);
+        $this->target = $target;
 
-        $this->source = [];
-        foreach ($source as $s) {
-            array_push($this->source, $document->importNode($s, TRUE));
+        $document = $target->document;
+        foreach ($nodes as $n) {
+            if ($n->ownerDocument->isSameNode($document)) {
+                array_push($this->nodes, $n->cloneNode(TRUE));
+            } else {
+                array_push($this->nodes, $document->importNode($n, TRUE));
+            }
         }
     }
 
@@ -46,10 +48,16 @@ class NodeRegrouping
      */
     public function before (...$selectors): NodeProperties
     {
-        return $this->inject($selectors, function ($anchor, $source)
-        {
-            return $anchor->parentNode->insertBefore($source->cloneNode(true), $anchor);
-        });
+        $nodes = [];
+        foreach ($this->anchors(...$selectors) as $a) {
+            foreach ($this->nodes as $n) {
+
+                $node = $a->parentNode->insertBefore($n->cloneNode(TRUE), $a);
+                array_push($nodes, $node);
+            }
+        }
+
+        return new NodeProperties(...$nodes);
     }
 
 
@@ -58,12 +66,23 @@ class NodeRegrouping
      */
     public function after (...$selectors): NodeProperties
     {
-        return $this->inject($selectors, function ($anchor, $source)
-        {
-            $source = $anchor->parentNode->insertBefore($source->cloneNode(true), $anchor);
-            $anchor->parentNode->insertBefore($anchor, $source);
-            return $source;
-        });
+        $nodes = [];
+        foreach ($this->anchors(...$selectors) as $a) {
+
+            $first = NULL;
+            foreach ($this->nodes as $n) {
+
+                $node = $a->parentNode->insertBefore($n->cloneNode(TRUE), $a);
+                array_push($nodes, $node);
+                $first = $first ?? $node;
+            }
+
+            if ($first) {
+                $first->parentNode->insertBefore($a, $first);
+            }
+        }
+
+        return new NodeProperties(...$nodes);
     }
 
 
@@ -72,14 +91,21 @@ class NodeRegrouping
      */
     public function up (...$selectors): NodeProperties
     {
-        return $this->inject($selectors, function ($anchor, $source)
-        {
-            if ($first = $anchor->firstChild) {
-                return $anchor->insertBefore($source->cloneNode(true), $first);
-            } else {
-                return $anchor->appendChild($source->cloneNode(true));
+        $nodes = [];
+        foreach ($this->anchors(...$selectors) as $a) {
+
+            $first = $a->firstChild;
+            foreach ($this->nodes as $n) {
+
+                $node = $first ?
+                    $a->insertBefore($n->cloneNode(TRUE), $first):
+                    $a->appenChild($n->cloneNode(TRUE));
+
+                array_push($nodes, $node);
             }
-        });
+        }
+
+        return new NodeProperties(...$nodes);
     }
 
 
@@ -88,10 +114,16 @@ class NodeRegrouping
      */
     public function down (...$selectors): NodeProperties
     {
-        return $this->inject($selectors, function ($anchor, $source)
-        {
-            return $anchor->appendChild($source->cloneNode(true));
-        });
+        $nodes = [];
+        foreach ($this->anchors(...$selectors) as $a) {
+            foreach ($this->nodes as $n) {
+
+                $node = $a->appendChild($n->cloneNode(TRUE));
+                array_push($nodes, $node);
+            }
+        }
+
+        return new NodeProperties(...$nodes);
     }
 
 
@@ -100,13 +132,20 @@ class NodeRegrouping
      */
     public function into (...$selectors): NodeProperties
     {
-        return $this->inject($selectors, function ($anchor, $source)
-        {
-            foreach ($anchor->childNodes as $c) {
-                $anchor->removeChild($c);
+        $nodes = [];
+        foreach ($this->anchors(...$selectors) as $a) {
+
+            while ($a->hasChildNodes()) {
+                $a->removeChild($a->firstChild);
             }
-            return $anchor->appendChild($source->cloneNode(true));
-        });
+            foreach ($this->nodes as $n) {
+
+                $node = $a->appendChild($n->cloneNode(TRUE));
+                array_push($nodes, $node);
+            }
+        }
+
+        return new NodeProperties(...$nodes);
     }
 
 
@@ -115,28 +154,28 @@ class NodeRegrouping
      */
     public function to (...$selectors): NodeProperties
     {
-        return $this->inject($selectors, function ($anchor, $source)
-        {
-            $source = $anchor->parentNode->insertBefore($source->cloneNode(true), $anchor);
-            $anchor->parentNode->removeChild($anchor);
-            return $source;
-        });
+        $nodes = [];
+        foreach ($this->anchors(...$selectors) as $a) {
+            foreach ($this->nodes as $n) {
+
+                $node = $a->parentNode->insertBefore($n->cloneNode(TRUE), $a);
+                array_push($nodes, $node);
+            }
+
+            $a->parentNode->removeChild($a);
+        }
+
+        return new NodeProperties(...$nodes);
     }
 
 
-    private function inject (array $selectors, callable $proc)
+    private function anchors (...$selectors): Generator
     {
-        $nodes = [];
-        foreach ($selectors as $s) {
-            $list = $this->xpath->query(Select::auto($s));
-            foreach ($list as $l) {
-                foreach ($this->source as $s) {
-                    $nodes[] = $proc($l, $s);
-                }
+        foreach ($selectors as $p) {
+            foreach ($this->target->query(Select::auto($p)) as $node) {
+                yield $node;
             }
         }
-
-        return new NodeProperties (...$nodes);
     }
 
 }

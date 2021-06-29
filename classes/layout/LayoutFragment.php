@@ -117,7 +117,7 @@ class LayoutFragment
             }
         }
 
-        return new NodeRegrouping ($this->document, ...$nodes);
+        return new NodeRegrouping ($this->xpath, ...$nodes);
     }
 
 
@@ -131,7 +131,7 @@ class LayoutFragment
             $nodes[] = $this->document->createTextNode($s);
         }
 
-        return new NodeRegrouping ($this->document, ...$nodes);
+        return new NodeRegrouping ($this->xpath, ...$nodes);
     }
 
 
@@ -145,7 +145,7 @@ class LayoutFragment
             $nodes[] = $this->document->createComment($c);
         }
 
-        return new NodeRegrouping ($this->document, ...$nodes);
+        return new NodeRegrouping ($this->xpath, ...$nodes);
     }
 
 
