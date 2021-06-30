@@ -1,6 +1,6 @@
 <?php namespace Uralmedias\Linker\Tests;
 
-
+use DOMXPath;
 use Uralmedias\Linker\Layout\NodeRegrouping;
 use Uralmedias\Linker\Tests\AbstractTestCase;
 
@@ -15,7 +15,9 @@ class NodeRegroupingTest extends AbstractTestCase
             $this->exampleDocument->createElement('div', 'Lorem ipsum #1'),
             $this->exampleDocument->createElement('div', 'Lorem ipsum #2')
         ];
-        $regrouping = new NodeRegrouping($this->exampleXPath, ...$source);
+        $this->exampleDocument = clone $this->exampleDocument;
+        $this->exampleXPath = new DOMXPath($this->exampleDocument);
+        $regrouping = new NodeRegrouping([$this->exampleXPath], $source);
         $regrouping->before('ul', 'ol');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'result.html');
     }
@@ -27,7 +29,7 @@ class NodeRegroupingTest extends AbstractTestCase
             $this->exampleDocument->createElement('div', 'Lorem ipsum #1'),
             $this->exampleDocument->createElement('div', 'Lorem ipsum #2')
         ];
-        $regrouping = new NodeRegrouping($this->exampleXPath, ...$source);
+        $regrouping = new NodeRegrouping([$this->exampleXPath], $source);
         $regrouping->after('ul', 'ol');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'result.html');
     }
@@ -39,7 +41,7 @@ class NodeRegroupingTest extends AbstractTestCase
             $this->exampleDocument->createElement('li', 'Lorem ipsum #1'),
             $this->exampleDocument->createElement('li', 'Lorem ipsum #2')
         ];
-        $regrouping = new NodeRegrouping($this->exampleXPath, ...$source);
+        $regrouping = new NodeRegrouping([$this->exampleXPath], $source);
         $regrouping->up('ul', 'ol');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'result.html');
     }
@@ -51,7 +53,7 @@ class NodeRegroupingTest extends AbstractTestCase
             $this->exampleDocument->createElement('li', 'Lorem ipsum #1'),
             $this->exampleDocument->createElement('li', 'Lorem ipsum #2')
         ];
-        $regrouping = new NodeRegrouping($this->exampleXPath, ...$source);
+        $regrouping = new NodeRegrouping([$this->exampleXPath], $source);
         $regrouping->down('ul', 'ol');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'result.html');
     }
@@ -63,7 +65,7 @@ class NodeRegroupingTest extends AbstractTestCase
             $this->exampleDocument->createElement('li', 'Lorem ipsum #1'),
             $this->exampleDocument->createElement('li', 'Lorem ipsum #2')
         ];
-        $regrouping = new NodeRegrouping($this->exampleXPath, ...$source);
+        $regrouping = new NodeRegrouping([$this->exampleXPath], $source);
         $regrouping->into('ul', 'ol');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'result.html');
     }
@@ -75,7 +77,7 @@ class NodeRegroupingTest extends AbstractTestCase
             $this->exampleDocument->createElement('div', 'Lorem ipsum #1'),
             $this->exampleDocument->createElement('div', 'Lorem ipsum #2')
         ];
-        $regrouping = new NodeRegrouping($this->exampleXPath, ...$source);
+        $regrouping = new NodeRegrouping([$this->exampleXPath], $source);
         $regrouping->to('ul', 'ol');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'result.html');
     }

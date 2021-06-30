@@ -55,13 +55,25 @@ class LayoutFragmentTest extends AbstractTestCase
     }
 
 
-    public function testPut ()
+    public function testPull ()
     {
         $fragment = new LayoutFragment ($this->exampleDocument);
         $piece1 = $fragment->copy('ul.b_list .b_list__item');
         $piece2 = $fragment->copy('ol.b_list .b_list__item');
-        $fragment->put($piece1)->up('ol.b_list');
-        $fragment->put($piece2)->down('ul.b_list');
+        $fragment->pull($piece1)->up('ol.b_list');
+        $fragment->pull($piece2)->down('ul.b_list');
+
+        $this->assertNoRegression($fragment, 'result.html');
+    }
+
+
+    public function testPush ()
+    {
+        $fragment = new LayoutFragment ($this->exampleDocument);
+        $piece1 = $fragment->copy('ul.b_list .b_list__item');
+        $piece2 = $fragment->copy('ol.b_list .b_list__item');
+        $piece1->push($fragment)->up('ol.b_list');
+        $piece2->push($fragment)->down('ul.b_list');
 
         $this->assertNoRegression($fragment, 'result.html');
     }

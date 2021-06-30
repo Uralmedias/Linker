@@ -101,23 +101,34 @@ class LayoutFragment
 
     public function move (...$selectors): NodeRegrouping
     {
-        return $this->put($this->cut(...$selectors));
+        return $this->pull($this->cut(...$selectors));
     }
 
 
     /**
      * Расширяет текущий экземпляр контентом другого.
      */
-    public function put (self ...$fragments): NodeRegrouping
+    public function pull (self ...$sources): NodeRegrouping
     {
         $nodes = [];
-        foreach ($fragments as $f) {
-            foreach ($f->document->childNodes as $node) {
-                $nodes[] = $node;
+        foreach ($sources as $s) {
+            foreach ($s->document->childNodes as $node) {
+                array_push($nodes, $node);
             }
         }
 
-        return new NodeRegrouping ($this->xpath, ...$nodes);
+        return new NodeRegrouping ([$this->xpath], $nodes);
+    }
+
+
+    public function push (self ...$targets): NodeRegrouping
+    {
+        $xpaths = [];
+        foreach ($targets as $t) {
+            array_push($xpaths, $t->xpath);
+        }
+
+        return new NodeRegrouping ($xpaths, [...$this->document->childNodes]);
     }
 
 
@@ -131,7 +142,7 @@ class LayoutFragment
             $nodes[] = $this->document->createTextNode($s);
         }
 
-        return new NodeRegrouping ($this->xpath, ...$nodes);
+        return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
 
@@ -145,7 +156,7 @@ class LayoutFragment
             $nodes[] = $this->document->createComment($c);
         }
 
-        return new NodeRegrouping ($this->xpath, ...$nodes);
+        return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
 
