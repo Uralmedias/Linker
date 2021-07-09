@@ -51,7 +51,9 @@ abstract class Layout
             if (!isset(self::$htmlCache[$cacheKey])) {
 
                 $document = new DOMDocument("1.0", "utf-8");
+                libxml_use_internal_errors(true);
                 $document->loadHTML($contents);
+                libxml_clear_errors();
                 self::$htmlCache[$cacheKey] = $document;
             }
 
@@ -59,7 +61,9 @@ abstract class Layout
         }
 
         $document = new DOMDocument("1.0", "utf-8");
+        libxml_use_internal_errors(true);
         $document->loadHTML($contents);
+        libxml_clear_errors();
         return new LayoutFragment ($document);
     }
 
@@ -73,7 +77,9 @@ abstract class Layout
             if (!isset(self::$fileCache[$cacheKey]) or (self::$fileCache[$cacheKey]['time'] !== fileatime($filename))) {
 
                 $document = new DOMDocument("1.0", "utf-8");
+                libxml_use_internal_errors(true);
                 $document->loadHTMLFile($filename);
+                libxml_clear_errors();
                 self::$fileCache[$cacheKey] = [
                     'time' => fileatime($filename),
                     'data' => $document
@@ -84,7 +90,9 @@ abstract class Layout
         }
 
         $document = new DOMDocument("1.0", "utf-8");
+        libxml_use_internal_errors(true);
         $document->loadHTMLFile($filename);
+        libxml_clear_errors();
         return new LayoutFragment ($document);
     }
 
@@ -98,7 +106,9 @@ abstract class Layout
         ob_start();
 
         call_user_func($process);
+        libxml_use_internal_errors(true);
         $fragment = static::fromHTML(ob_get_contents());
+        libxml_clear_errors();
         ob_end_clean();
 
         return $fragment;
