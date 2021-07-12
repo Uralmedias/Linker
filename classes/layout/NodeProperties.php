@@ -198,7 +198,7 @@ class NodeProperties
      *
      * *При использовании регулярных выражений можно использовать групировки и подстановки.*
      */
-    public function classes (array $updates = NULL, bool $doReplacing = FALSE, bool $assumeRE = FALSE): array
+    public function classes (array $updates = NULL, ?bool $assumeRE = NULL): array
     {
         // классы могут быть только у элементов
         if ($updates !== NULL) {
@@ -206,12 +206,15 @@ class NodeProperties
                 if (is_a($n, DOMElement::class)) {
 
                     $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
-                    if (!$doReplacing) {
+                    if ($assumeRE === NULL) {
 
-                        $classes = array_diff($classes, array_keys($updates));
-                        foreach ($updates as $u) {
-                            if ($u !== NULL) {
-                                array_push($classes, $u);
+                        foreach ($updates as $uKey => $uValue) {
+                            if (is_string($uKey)) {
+                                if (($i = array_search($uKey, $classes)) !== FALSE) {
+                                    $classes[$i] = $uValue;
+                                }
+                            } else {
+                                array_push($classes, $uValue);
                             }
                         }
 
