@@ -24,7 +24,7 @@ abstract class Layout
      */
     public static function fromNodes (DOMNode ...$nodes): LayoutFragment
     {
-        $document = new DOMDocument("1.0", "utf-8");
+        $document = new DOMDocument();
         foreach ($nodes as $n) {
             $document->appendChild($document->importNode($n, TRUE));
         }
@@ -38,47 +38,45 @@ abstract class Layout
      */
     public static function fromDocument (DOMDocument $document): LayoutFragment
     {
-        return new LayoutFragment ($document);
+        return new LayoutFragment (clone $document);
     }
 
 
     /**
      * Создать фрагмент из строки, содержащей разметку.
      */
-    public static function fromHTML (string $contents): LayoutFragment
+    public static function fromHTML (string $contents, string $encoding = "UTF-8"): LayoutFragment
     {
-        if ($cacheKey = md5($contents)) {
-            if (!isset(self::$htmlCache[$cacheKey])) {
+        $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
+        $cacheKey = md5($contents);
 
-                $document = new DOMDocument("1.0", "utf-8");
-                libxml_use_internal_errors(true);
-                $document->loadHTML($contents);
-                libxml_clear_errors();
-                self::$htmlCache[$cacheKey] = $document;
-            }
+        if (!isset(self::$htmlCache[$cacheKey])) {
 
-            return new LayoutFragment (self::$htmlCache[$cacheKey]);
+            libxml_use_internal_errors(true);
+            $document = DOMDocument::loadHTML($contents);
+            libxml_clear_errors();
+            self::$htmlCache[$cacheKey] = $document;
         }
 
-        $document = new DOMDocument("1.0", "utf-8");
-        libxml_use_internal_errors(true);
-        $document->loadHTML($contents);
-        libxml_clear_errors();
-        return new LayoutFragment ($document);
+        return new LayoutFragment (clone self::$htmlCache[$cacheKey]);
     }
 
 
     /**
      * Создать фрагмент из локального файла или URL.
      */
-    public static function fromFile (string $filename): LayoutFragment
+    public static function fromFile (string $filename, string $encoding = "UTF-8"): LayoutFragment
     {
-        if ($cacheKey = realpath($filename)) {
+        if (($localPath = realpath($filename))) {
+
+            $cacheKey = md5("[$encoding]".$filename);
+
             if (!isset(self::$fileCache[$cacheKey]) or (self::$fileCache[$cacheKey]['time'] !== fileatime($filename))) {
 
-                $document = new DOMDocument("1.0", "utf-8");
+                $contents = file_get_contents($filename);
+                $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
                 libxml_use_internal_errors(true);
-                $document->loadHTMLFile($filename);
+                $document = DOMDocument::loadHTML($contents);
                 libxml_clear_errors();
                 self::$fileCache[$cacheKey] = [
                     'time' => fileatime($filename),
@@ -89,9 +87,10 @@ abstract class Layout
             return new LayoutFragment (clone self::$fileCache[$cacheKey]['data']);
         }
 
-        $document = new DOMDocument("1.0", "utf-8");
+        $contents = file_get_contents($filename);
+        $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
         libxml_use_internal_errors(true);
-        $document->loadHTMLFile($filename);
+        $document = DOMDocument::loadHTML($contents);
         libxml_clear_errors();
         return new LayoutFragment ($document);
     }
@@ -100,14 +99,12 @@ abstract class Layout
     /**
      * Создать фрагмент из буфера вывода при выполнении функции.
      */
-    public static function fromOutput (callable $process): LayoutFragment
+    public static function fromOutput (callable $process, string $encoding = 'UTF-8'): LayoutFragment
     {
-        $document = new DOMDocument("1.0", "utf-8");
         ob_start();
-
         call_user_func($process);
         libxml_use_internal_errors(true);
-        $fragment = static::fromHTML(ob_get_contents());
+        $fragment = static::fromHTML(ob_get_contents(), $encoding);
         libxml_clear_errors();
         ob_end_clean();
 
