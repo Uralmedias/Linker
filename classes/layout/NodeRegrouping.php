@@ -33,11 +33,12 @@ class NodeRegrouping
 
             $items = [];
             foreach ($sources as $s) {
-
-                if ($s->ownerDocument->isSameNode($t->document)) {
-                    array_push($items, $s->cloneNode(TRUE));
-                } else {
-                    array_push($items, $t->document->importNode($s, TRUE));
+                if (is_a($s, DOMNode::class)) {
+                    if ($s->ownerDocument->isSameNode($t->document)) {
+                        array_push($items, $s->cloneNode(TRUE));
+                    } else {
+                        array_push($items, $t->document->importNode($s, TRUE));
+                    }
                 }
             }
 

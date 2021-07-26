@@ -5,7 +5,7 @@ use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeRegrouping;
 use Uralmedias\Linker\Layout\NodeProperties;
-use DOMDocument, DOMXPath, Traversable;
+use WeakReference, Generator, DOMDocument, DOMXPath;
 
 
 /**
@@ -22,6 +22,8 @@ class LayoutFragment
 
     private DOMDocument $document;
     private DOMXPath $xpath;
+    private array $queryCache = [];
+    private ?string $stringCache = NULL;
 
 
     /**
@@ -29,7 +31,7 @@ class LayoutFragment
      */
     public function __construct (DOMDocument $document)
     {
-        $this->document = $document;
+        $this->document = clone $document;
         $this->xpath = new DOMXPath($this->document);
     }
 
@@ -49,7 +51,11 @@ class LayoutFragment
      */
     public function __toString(): string
     {
-        return html_entity_decode($this->document->saveHTML(), ENT_HTML5);
+        if ($this->stringCache === NULL) {
+            $this->stringCache = html_entity_decode($this->document->saveHTML(), ENT_HTML5);
+        }
+
+        return $this->stringCache;
     }
 
 
@@ -71,6 +77,18 @@ class LayoutFragment
                 $node->parentNode->removeChild($node);
             }
         }
+
+        $this->clean();
+    }
+
+
+    // TODO: Написать документацию
+    // TODO: Написать тест
+    public function split (...$selectors): Generator
+    {
+        foreach ($this->query(...$selectors) as $node) {
+            yield Layout::fromNodes($node);
+        }
     }
 
 
@@ -86,6 +104,7 @@ class LayoutFragment
             $node->parentNode->removeChild($node);
         }
 
+        !count($nodes) ?? $this->clean();
         return Layout::fromNodes(...$nodes);
     }
 
@@ -117,6 +136,7 @@ class LayoutFragment
             }
         }
 
+        !count($nodes) ?? $this->clean();
         return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
@@ -142,6 +162,7 @@ class LayoutFragment
             $nodes[] = $this->document->createTextNode($s);
         }
 
+        !count($nodes) ?? $this->clean();
         return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
@@ -156,6 +177,7 @@ class LayoutFragment
             $nodes[] = $this->document->createComment($c);
         }
 
+        !count($nodes) ?? $this->clean();
         return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
@@ -165,7 +187,9 @@ class LayoutFragment
      */
     public function nodes (...$selectors): NodeProperties
     {
-        return new NodeProperties (...$this->query(...$selectors));
+        $nodes = [...$this->query(...$selectors)];
+        !count($nodes) ?? $this->clean();
+        return new NodeProperties (...$nodes);
     }
 
 
@@ -180,15 +204,18 @@ class LayoutFragment
             $search = array_keys($updates);
             $replacement = array_values($updates);
 
-            foreach ($this->query($xpath) as $node) {
+            $nodes = $this->query($xpath);
 
-                $node->value = $assumeRE ?
-                    preg_replace ($search, $replacement, $node->value):
-                    str_replace ($search, $replacement, $node->value);
+            foreach ($nodes as $n) {
 
-                $result[] = $node->value;
+                $n->value = $assumeRE ?
+                    preg_replace ($search, $replacement, $n->value):
+                    str_replace ($search, $replacement, $n->value);
+
+                array_push($result, $n->value);
             }
 
+            !count($result) ?? $this->clean();
             return $result;
         };
 
@@ -205,7 +232,7 @@ class LayoutFragment
      */
     public function reverse (...$selectors): NodeProperties
     {
-        $nodes = $this->query(...$selectors);
+        $nodes = [...$this->query(...$selectors)];
 
         $result = [];
         while ($nodeX = array_shift($nodes) and ($nodeY = array_pop($nodes))) {
@@ -218,6 +245,7 @@ class LayoutFragment
             $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
+        !count($result) ?? $this->clean();
         return new NodeProperties (...$result);
     }
 
@@ -227,7 +255,7 @@ class LayoutFragment
      */
     public function randomize (...$selectors): NodeProperties
     {
-        $nodes = $this->query(...$selectors);
+        $nodes = [...$this->query(...$selectors)];
         shuffle($nodes);
 
         $result = [];
@@ -241,6 +269,7 @@ class LayoutFragment
             $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
+        !count($result) ?? $this->clean();
         return new NodeProperties (...$result);
     }
 
@@ -250,19 +279,44 @@ class LayoutFragment
      */
     public function count (...$selectors): int
     {
-        return count($this->query(...$selectors));
-    }
-
-
-    private function query (...$selectors): array
-    {
-        $result = [];
+        $result = 0;
         foreach ($selectors as $s) {
-            foreach ($this->xpath->query(Select::auto($s)) as $node) {
-                array_push($result, $node);
+            if ($list = $this->xpath->query(Select::auto($s))) {
+                $result += $list->length;
             }
         }
         return $result;
+    }
+
+
+    private function clean (): void
+    {
+        $this->queryCache = [];
+        $this->stringCache = NULL;
+    }
+
+
+    private function query (...$selectors): Generator
+    {
+        foreach ($selectors as $s) {
+
+            $request = Select::auto($s);
+            if (array_key_exists($request, $this->queryCache)) {
+
+                foreach ($this->queryCache[$request] as $node) {
+                    yield $node;
+                }
+
+            } else {
+
+                $cacheItems = [];
+                foreach ($this->xpath->query($request) as $node) {
+                    array_push($cacheItems, $node);
+                    yield $node;
+                }
+                $this->queryCache[$request] = $cacheItems;
+            }
+        }
     }
 
 }

@@ -58,7 +58,7 @@ abstract class Layout
             self::$htmlCache[$cacheKey] = $document;
         }
 
-        return new LayoutFragment (clone self::$htmlCache[$cacheKey]);
+        return new LayoutFragment (self::$htmlCache[$cacheKey]);
     }
 
 
@@ -84,7 +84,7 @@ abstract class Layout
                 ];
             }
 
-            return new LayoutFragment (clone self::$fileCache[$cacheKey]['data']);
+            return new LayoutFragment (self::$fileCache[$cacheKey]['data']);
         }
 
         $contents = file_get_contents($filename);
