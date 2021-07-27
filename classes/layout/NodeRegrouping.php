@@ -33,13 +33,16 @@ class NodeRegrouping
 
             $items = [];
             foreach ($sources as $s) {
-                if (is_a($s, DOMNode::class)) {
-                    if ($s->ownerDocument->isSameNode($t->document)) {
-                        array_push($items, $s->cloneNode(TRUE));
-                    } else {
-                        array_push($items, $t->document->importNode($s, TRUE));
-                    }
+
+                if ($s->ownerDocument->isSameNode($t->document)) {
+                    $stash = $s->cloneNode(TRUE);
+                } else {
+                    $stash = $t->document->importNode($s, TRUE);
                 }
+
+				if (is_a($stash, DOMNode::class)) {
+					array_push($items, $stash);
+				}
             }
 
             array_push($this->imports, [$t, $items]);
@@ -76,6 +79,7 @@ class NodeRegrouping
             $a = $target->anchor;
             foreach ($target->items as $i) {
 
+				if (!$i) continue;
                 $node = $a->parentNode->insertBefore($i->cloneNode(true), $a);
                 array_push($nodes, $node);
             }
@@ -97,6 +101,8 @@ class NodeRegrouping
             $first = null;
 
             foreach ($target->items as $i) {
+
+				//if (!$i) continue;
                 $node = $a->parentNode->insertBefore($i->cloneNode(true), $a);
                 array_push($nodes, $node);
                 $first = $first ?? $node;
@@ -124,6 +130,7 @@ class NodeRegrouping
 
             foreach ($target->items as $i) {
 
+				if (!$i) continue;
                 $node = $first ?
                     $a->insertBefore($i->cloneNode(TRUE), $first):
                     $a->appenChild($i->cloneNode(TRUE));
@@ -147,6 +154,7 @@ class NodeRegrouping
             $a = $target->anchor;
             foreach ($target->items as $i) {
 
+				if (!$i) continue;
                 $node = $a->appendChild($i->cloneNode(true));
                 array_push($nodes, $node);
             }
@@ -171,6 +179,8 @@ class NodeRegrouping
             }
 
             foreach ($target->items as $i) {
+
+				if (!$i) continue;
                 $node = $a->appendChild($i->cloneNode(true));
                 array_push($nodes, $node);
             }
@@ -191,6 +201,8 @@ class NodeRegrouping
             $a = $target->anchor;
 
             foreach ($target->items as $i) {
+
+				if (!$i) continue;
                 $node = $a->parentNode->insertBefore($i->cloneNode(TRUE), $a);
                 array_push($nodes, $node);
             }

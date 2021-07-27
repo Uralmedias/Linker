@@ -68,17 +68,23 @@ class LayoutFragment
             '//text()[not(parent::pre)]':
             '//text()[not(parent::script) and not(parent::style) and not(parent::pre)]';
 
+        $clean = FALSE;
+
         foreach ($this->query($q) as $node) {
             $node->textContent = preg_replace('/\s+/', ' ', $node->textContent);
+            $clean = TRUE;
         }
 
         if ($comments) {
             foreach ($this->query('//comment()') as $node) {
                 $node->parentNode->removeChild($node);
+                $clean = TRUE;
             }
         }
 
-        $this->clean();
+        if ($clean) {
+			 $this->clean();
+		}
     }
 
 
@@ -104,7 +110,10 @@ class LayoutFragment
             $node->parentNode->removeChild($node);
         }
 
-        !count($nodes) ?? $this->clean();
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
         return Layout::fromNodes(...$nodes);
     }
 
@@ -136,7 +145,10 @@ class LayoutFragment
             }
         }
 
-        !count($nodes) ?? $this->clean();
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
         return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
@@ -162,7 +174,10 @@ class LayoutFragment
             $nodes[] = $this->document->createTextNode($s);
         }
 
-        !count($nodes) ?? $this->clean();
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
         return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
@@ -177,7 +192,10 @@ class LayoutFragment
             $nodes[] = $this->document->createComment($c);
         }
 
-        !count($nodes) ?? $this->clean();
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
         return new NodeRegrouping ([$this->xpath], $nodes);
     }
 
@@ -188,7 +206,11 @@ class LayoutFragment
     public function nodes (...$selectors): NodeProperties
     {
         $nodes = [...$this->query(...$selectors)];
-        !count($nodes) ?? $this->clean();
+
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
         return new NodeProperties (...$nodes);
     }
 
@@ -215,7 +237,10 @@ class LayoutFragment
                 array_push($result, $n->value);
             }
 
-            !count($result) ?? $this->clean();
+		    if (!empty($nodes)) {
+				 $this->clean();
+			}
+
             return $result;
         };
 
@@ -245,7 +270,10 @@ class LayoutFragment
             $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
-        !count($result) ?? $this->clean();
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
         return new NodeProperties (...$result);
     }
 
@@ -269,7 +297,7 @@ class LayoutFragment
             $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
-        !count($result) ?? $this->clean();
+        $this->clean();
         return new NodeProperties (...$result);
     }
 
