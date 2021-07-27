@@ -53,7 +53,7 @@ abstract class Layout
         if (!isset(self::$htmlCache[$cacheKey])) {
 
             libxml_use_internal_errors(true);
-            $document = DOMDocument::loadHTML($contents);
+            $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
             libxml_clear_errors();
             self::$htmlCache[$cacheKey] = $document;
         }
@@ -76,7 +76,7 @@ abstract class Layout
                 $contents = file_get_contents($filename);
                 $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
                 libxml_use_internal_errors(true);
-                $document = DOMDocument::loadHTML($contents);
+                $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
                 libxml_clear_errors();
                 self::$fileCache[$cacheKey] = [
                     'time' => fileatime($filename),
@@ -90,7 +90,7 @@ abstract class Layout
         $contents = file_get_contents($filename);
         $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
         libxml_use_internal_errors(true);
-        $document = DOMDocument::loadHTML($contents);
+        $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
         libxml_clear_errors();
         return new LayoutFragment ($document);
     }
@@ -103,12 +103,14 @@ abstract class Layout
     {
         ob_start();
         call_user_func($process);
-        libxml_use_internal_errors(true);
-        $fragment = static::fromHTML(ob_get_contents(), $encoding);
-        libxml_clear_errors();
+		$contents = ob_get_contents();
         ob_end_clean();
 
-        return $fragment;
+        $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
+        libxml_use_internal_errors(true);
+        $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
+        libxml_clear_errors();
+        return new LayoutFragment ($document);
     }
 
 }
