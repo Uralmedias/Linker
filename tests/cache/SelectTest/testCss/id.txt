@@ -1,1 +1,1 @@
-descendant-or-self::*[@id = 'id']
+//*[@id = 'id']

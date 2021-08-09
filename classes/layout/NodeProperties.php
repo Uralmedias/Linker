@@ -30,6 +30,17 @@ class NodeProperties
     }
 
 
+    public function __toString(): string
+    {
+        $result = '';
+        foreach ($this->nodes as $n) {
+            $result .= $n->ownerDocument->saveHtml($n);
+        }
+
+        return $result;
+    }
+
+
     /**
      * **Имя узла**
      *

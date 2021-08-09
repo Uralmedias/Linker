@@ -1,1 +1,1 @@
-descendant-or-self::parent/children
+//parent/children

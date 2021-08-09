@@ -22,17 +22,25 @@ abstract class Select
     /**
      * Автоматически определеить тип селектора.
      */
-    public static function auto ($pattern): string
+    public static function auto ($value): string
     {
-        if (is_int($pattern)) {
-            return static::at($pattern);
+        $cacheKey = 'auto'.$value;
+
+        if (!array_key_exists($cacheKey, self::$cache)) {
+
+            if (is_int($value)) {
+                self::$cache[$cacheKey] = static::at($value);
+            } else {
+
+                try {
+                    self::$cache[$cacheKey] = static::css($value);
+                } catch (Exception $e) {
+                    self::$cache[$cacheKey] = $value;
+                }
+            }
         }
 
-        try {
-            return static::css($pattern);
-        } catch (Exception $e) {}
-
-        return $pattern;
+        return self::$cache[$cacheKey];
     }
 
 
@@ -41,29 +49,48 @@ abstract class Select
      * и указывает позицию с начала, отрицательный начинается
      * с -1 и указывает позицию с конца.
      */
-    public static function at (int $index): string
+    public static function at (int $position): string
     {
-        if (!array_key_exists($index, self::$cache)) {
+        $cacheKey = 'at'.$position;
 
-            self::$cache[$index] = ($index < 0) ?
-                self::$cache[$index] = '/*[last()'.$index.']':
-                self::$cache[$index] = '/*['.($index + 1).']';
+        if (!array_key_exists($cacheKey, self::$cache)) {
+
+            self::$cache[$cacheKey] = ($position < 0) ?
+                self::$cache[$cacheKey] = '/*[last()'.$position.']':
+                self::$cache[$cacheKey] = '/*['.($position + 1).']';
         }
-        return self::$cache[$index];
+
+        return self::$cache[$cacheKey];
     }
 
 
     /**
      * Селектор CSS (будет преобразован в XPath).
      */
-    public static function css (string $css): string
+    public static function css (string $selector): string
     {
-        if (!array_key_exists($css, self::$cache)) {
+        $cacheKey = 'css'.$selector;
+
+        if (!array_key_exists($cacheKey, self::$cache)) {
 
             self::$converter = self::$converter ?? new CssSelectorConverter();
-            self::$cache[$css] = self::$converter->toXPath($css);
+            self::$cache[$cacheKey] = self::$converter->toXPath($selector, '//');
         }
-        return self::$cache[$css];
+
+        return self::$cache[$cacheKey];
+    }
+
+
+    // TODO: Документировать и тестировать
+    public static function path (string ...$steps): string
+    {
+        $result = '';
+        foreach ($steps as $s) {
+            $result .= static::auto($s);
+        }
+
+        self::$cache['auto'.$result] = $result;
+        return $result;
     }
 
 }

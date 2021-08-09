@@ -1,1 +1,1 @@
-descendant-or-self::*[@attribute = 'value']
+//*[@attribute = 'value']

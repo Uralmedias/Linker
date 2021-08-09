@@ -17,6 +17,7 @@ abstract class Layout
 
     private static array $htmlCache = [];
     private static array $fileCache = [];
+    private static DOMDocument $template;
 
 
     /**
@@ -24,7 +25,7 @@ abstract class Layout
      */
     public static function fromNodes (DOMNode ...$nodes): LayoutFragment
     {
-        $document = new DOMDocument();
+        $document = static::newDocument();
         foreach ($nodes as $n) {
             $document->appendChild($document->importNode($n, TRUE));
         }
@@ -47,18 +48,8 @@ abstract class Layout
      */
     public static function fromHTML (string $contents, string $encoding = "UTF-8"): LayoutFragment
     {
-        $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
-        $cacheKey = md5($contents);
-
-        if (!isset(self::$htmlCache[$cacheKey])) {
-
-            libxml_use_internal_errors(true);
-            $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
-            libxml_clear_errors();
-            self::$htmlCache[$cacheKey] = $document;
-        }
-
-        return new LayoutFragment (self::$htmlCache[$cacheKey]);
+        $document = static::newDocument($contents, $encoding);
+        return new LayoutFragment ($document);
     }
 
 
@@ -74,24 +65,18 @@ abstract class Layout
             if (!isset(self::$fileCache[$cacheKey]) or (self::$fileCache[$cacheKey]['time'] !== fileatime($filename))) {
 
                 $contents = file_get_contents($filename);
-                $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
-                libxml_use_internal_errors(true);
-                $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
-                libxml_clear_errors();
+                $document = static::newDocument($contents, $encoding);
                 self::$fileCache[$cacheKey] = [
                     'time' => fileatime($filename),
                     'data' => $document
                 ];
             }
 
-            return new LayoutFragment (self::$fileCache[$cacheKey]['data']);
+            return new LayoutFragment (clone self::$fileCache[$cacheKey]['data']);
         }
 
         $contents = file_get_contents($filename);
-        $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
-        libxml_use_internal_errors(true);
-        $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
-        libxml_clear_errors();
+        $document = static::newDocument($contents, $encoding);
         return new LayoutFragment ($document);
     }
 
@@ -106,11 +91,33 @@ abstract class Layout
 		$contents = ob_get_contents();
         ob_end_clean();
 
-        $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
-        libxml_use_internal_errors(true);
-        $document = DOMDocument::loadHTML($contents) ?: new DOMDocument();
-        libxml_clear_errors();
+        $document = static::newDocument($contents, $encoding);
         return new LayoutFragment ($document);
+    }
+
+
+    private static function newDocument (string $contents = NULL, string $encoding = 'UTF-8')
+    {
+        self::$template = isset(self::$template) ? self::$template : new DOMDocument;
+
+        if (!empty($contents)) {
+
+            $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
+            $cacheKey = md5($contents);
+
+            if (!array_key_exists($cacheKey, self::$htmlCache)) {
+
+                $document = clone self::$template;
+                libxml_use_internal_errors(true);
+                $document->loadHTML($contents, LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
+                libxml_clear_errors();
+                self::$htmlCache[$cacheKey] = $document;
+            }
+
+            return clone self::$htmlCache[$cacheKey];
+        }
+
+        return clone self::$template;
     }
 
 }

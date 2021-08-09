@@ -31,7 +31,7 @@ class LayoutFragment
      */
     public function __construct (DOMDocument $document)
     {
-        $this->document = clone $document;
+        $this->document = $document;
         $this->xpath = new DOMXPath($this->document);
     }
 
@@ -307,11 +307,18 @@ class LayoutFragment
      */
     public function count (...$selectors): int
     {
+        if (empty($selectors)) {
+            return $this->document->childNodes->length;
+        }
+
         $result = 0;
         foreach ($selectors as $s) {
-            if ($list = $this->xpath->query(Select::auto($s))) {
-                $result += $list->length;
+
+            $request = Select::auto($s);
+            if (!array_key_exists($request, $this->queryCache)) {
+                $this->queryCache[$request] = $this->xpath->query($request);
             }
+            $result += $this->queryCache[$request]->length;
         }
         return $result;
     }
@@ -326,23 +333,24 @@ class LayoutFragment
 
     private function query (...$selectors): Generator
     {
-        foreach ($selectors as $s) {
+        if (empty($selectors)) {
 
-            $request = Select::auto($s);
-            if (array_key_exists($request, $this->queryCache)) {
+            foreach ($this->document->childNodes as $node) {
+                yield $node;
+            }
+
+        } else {
+
+            foreach ($selectors as $s) {
+
+                $request = Select::auto($s);
+                if (!array_key_exists($request, $this->queryCache)) {
+                    $this->queryCache[$request] = $this->xpath->query($request);
+                }
 
                 foreach ($this->queryCache[$request] as $node) {
                     yield $node;
                 }
-
-            } else {
-
-                $cacheItems = [];
-                foreach ($this->xpath->query($request) as $node) {
-                    array_push($cacheItems, $node);
-                    yield $node;
-                }
-                $this->queryCache[$request] = $cacheItems;
             }
         }
     }
