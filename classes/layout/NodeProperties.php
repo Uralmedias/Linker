@@ -271,6 +271,11 @@ class NodeProperties
                 if (is_a($n, DOMElement::class)) {
 
                     foreach ($updates as $uName => $uValue) {
+
+						if (!empty($uValue)) {
+							$uValue = htmlentities(html_entity_decode($uValue));
+						}
+
                         if (($uValue === NULL) and !$nullValues) {
                             $n->removeAttribute($uName);
                         } else {

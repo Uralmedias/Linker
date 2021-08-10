@@ -98,7 +98,18 @@ abstract class Layout
 
     private static function newDocument (string $contents = NULL, string $encoding = 'UTF-8')
     {
-        self::$template = isset(self::$template) ? self::$template : new DOMDocument;
+		if (!isset(self::$template)) {
+
+			self::$template = new DOMDocument;
+
+		    self::$template->formatOutput = FALSE;
+		    self::$template->preserveWhiteSpace = TRUE;
+		    self::$template->validateOnParse = FALSE;
+		    self::$template->strictErrorChecking = FALSE;
+		    self::$template->recover = FALSE;
+		    self::$template->resolveExternals = FALSE;
+		    self::$template->substituteEntities = FALSE;
+		}
 
         if (!empty($contents)) {
 

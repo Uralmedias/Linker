@@ -52,7 +52,7 @@ class LayoutFragment
     public function __toString(): string
     {
         if ($this->stringCache === NULL) {
-            $this->stringCache = html_entity_decode($this->document->saveHTML(), ENT_HTML5);
+            $this->stringCache = $this->document->saveHTML();
         }
 
         return $this->stringCache;
