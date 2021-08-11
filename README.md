@@ -99,16 +99,16 @@ public function write (string ...$strings): NodeRegrouping;
 public function annotate (string ...$comments): NodeRegrouping;
 
 // Получает доступ к свойствам узлов фрагмента
-public function nodes (...$selectors): NodeProperties;
+public function nodes (...$selectors): NodeAggregator;
 
 // Извлекает ссылки на ресурсы
 public function assets (array $updates = [], bool $assumeRE = FALSE): array;
 
 // Инвертирует последовательность узлов фрагмента
-public function reverse (...$selectors): NodeProperties;
+public function reverse (...$selectors): NodeAggregator;
 
 // Расставляет узлы фрагмента в случайном порядке
-public function randomize (...$selectors): NodeProperties;
+public function randomize (...$selectors): NodeAggregator;
 ```
 
 #### NodeRegrouping
@@ -116,30 +116,30 @@ public function randomize (...$selectors): NodeProperties;
 
 ```php
 // Аргумент $selectors в каждом случае определяет селекторы целевых узлов
-// Возвращаемое значение - это объект NodeProperties, ссылающийся на
+// Возвращаемое значение - это объект NodeAggregator, ссылающийся на
 // только что вставленные узлы.
 
 // Перед каждой целью
-public function before (...$selectors): NodeProperties;
+public function before (...$selectors): NodeAggregator;
 
 // После каждой цели
-public function after (...$selectors): NodeProperties;
+public function after (...$selectors): NodeAggregator;
 
 // В начало каждой цели (первый потомок)
-public function up (...$selectors): NodeProperties;
+public function up (...$selectors): NodeAggregator;
 
 // В конец каждой цели (последний потомок)
-public function down (...$selectors): NodeProperties;
+public function down (...$selectors): NodeAggregator;
 
 // Внутрь целей (заменить текущее содержимое)
-public function into (...$selectors): NodeProperties;
+public function into (...$selectors): NodeAggregator;
 
 // Вместо целей (заменить выбранные узлы)
-public function to (...$selectors): NodeProperties;
+public function to (...$selectors): NodeAggregator;
 ```
 
-#### NodeProperties
-`NodeProperties` позволяет получать или изменять имя, значение или атрибуты конкретных узлов. Инстанциируется экземплярами `LayoutFragment` и `NodeRegrouping`. Так же, как и `NodeRegrouping` владеет только ссылкой на управляемый им объект, поэтому не рекомендуется длительное хранение экземпляров.
+#### NodeAggregator
+`NodeAggregator` позволяет получать или изменять имя, значение или атрибуты конкретных узлов. Инстанциируется экземплярами `LayoutFragment` и `NodeRegrouping`. Так же, как и `NodeRegrouping` владеет только ссылкой на управляемый им объект, поэтому не рекомендуется длительное хранение экземпляров.
 
 ```php
 // Названия узлов

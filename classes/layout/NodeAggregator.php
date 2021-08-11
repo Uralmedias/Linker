@@ -18,7 +18,7 @@ use DOMNode, DOMCharacterData, DOMAttr, DOMElement;
  * *Длительное хранение экземпляра может привести к неожиданным
  * последствиям из-за непостоянства ссылок в PHP DOM.*
  */
-class NodeProperties
+class NodeAggregator
 {
 
     private array $nodes = [];

@@ -4,7 +4,7 @@
 use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeRegrouping;
-use Uralmedias\Linker\Layout\NodeProperties;
+use Uralmedias\Linker\Layout\NodeAggregator;
 use WeakReference, Generator, DOMDocument, DOMXPath;
 
 
@@ -203,7 +203,7 @@ class LayoutFragment
     /**
      * Позволяет читать и изменять атрибуты элементов внутри экземпляра.
      */
-    public function nodes (...$selectors): NodeProperties
+    public function nodes (...$selectors): NodeAggregator
     {
         $nodes = [...$this->query(...$selectors)];
 
@@ -211,7 +211,7 @@ class LayoutFragment
 			 $this->clean();
 		}
 
-        return new NodeProperties (...$nodes);
+        return new NodeAggregator (...$nodes);
     }
 
 
@@ -255,7 +255,7 @@ class LayoutFragment
     /**
      * Переворачивает порядок следования узлов.
      */
-    public function reverse (...$selectors): NodeProperties
+    public function reverse (...$selectors): NodeAggregator
     {
         $nodes = [...$this->query(...$selectors)];
 
@@ -274,14 +274,14 @@ class LayoutFragment
 			 $this->clean();
 		}
 
-        return new NodeProperties (...$result);
+        return new NodeAggregator (...$result);
     }
 
 
     /**
      * Меняет узлы между собой в случайном порядке.
      */
-    public function randomize (...$selectors): NodeProperties
+    public function randomize (...$selectors): NodeAggregator
     {
         $nodes = [...$this->query(...$selectors)];
         shuffle($nodes);
@@ -298,7 +298,7 @@ class LayoutFragment
         }
 
         $this->clean();
-        return new NodeProperties (...$result);
+        return new NodeAggregator (...$result);
     }
 
 

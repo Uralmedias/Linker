@@ -1,16 +1,16 @@
 <?php namespace Uralmedias\Linker\Tests;
 
 
-use Uralmedias\Linker\Layout\NodeProperties;
+use Uralmedias\Linker\Layout\NodeAggregator;
 use Uralmedias\Linker\Tests\AbstractTestCase;
 
 
-class NodePropertiesTest extends AbstractTestCase
+class NodeAggregatorTest extends AbstractTestCase
 {
 
     public function testName ()
     {
-        $properties = new NodeProperties(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
+        $properties = new NodeAggregator(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
         $this->assertNoRegression($properties->name(), 'get.txt');
         $properties->name('div');
@@ -20,7 +20,7 @@ class NodePropertiesTest extends AbstractTestCase
 
     public function testValue ()
     {
-        $properties = new NodeProperties(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
+        $properties = new NodeAggregator(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
         $this->assertNoRegression($properties->value(), 'get.txt');
         $properties->value('New heading');
@@ -30,8 +30,8 @@ class NodePropertiesTest extends AbstractTestCase
 
     public function testStyle ()
     {
-        $properties1 = new NodeProperties(...$this->exampleXPath->query('//ul'));
-        $properties2 = new NodeProperties(...$this->exampleXPath->query('//ol'));
+        $properties1 = new NodeAggregator(...$this->exampleXPath->query('//ul'));
+        $properties2 = new NodeAggregator(...$this->exampleXPath->query('//ol'));
 
         $test = [
             $properties1->styles(),
@@ -48,8 +48,8 @@ class NodePropertiesTest extends AbstractTestCase
 
     public function testClasses ()
     {
-        $properties1 = new NodeProperties(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
-        $properties2 = new NodeProperties(...$this->exampleXPath->query('//*[@class="b_list__item"]'));
+        $properties1 = new NodeAggregator(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
+        $properties2 = new NodeAggregator(...$this->exampleXPath->query('//*[@class="b_list__item"]'));
 
         $test = [
             $properties1->classes(),
@@ -63,7 +63,7 @@ class NodePropertiesTest extends AbstractTestCase
 
     public function testAttributes ()
     {
-        $properties = new NodeProperties(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
+        $properties = new NodeAggregator(...$this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
         $properties->attributes(['data-test' => 'test attribute']);
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');

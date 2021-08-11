@@ -2,7 +2,7 @@
 
 
 use Uralmedias\Linker\Select;
-use Uralmedias\Linker\Layout\NodeProperties;
+use Uralmedias\Linker\Layout\NodeAggregator;
 use DOMNode, DOMXPath, Generator;
 
 
@@ -71,7 +71,7 @@ class NodeRegrouping
     /**
      * Вставить копию перед каждым узлом, выбранным с помощью $selectors
      */
-    public function before (...$selectors): NodeProperties
+    public function before (...$selectors): NodeAggregator
     {
         $nodes = [];
         foreach ($this->targets(...$selectors) as $target) {
@@ -85,14 +85,14 @@ class NodeRegrouping
             }
         }
 
-        return new NodeProperties(...$nodes);
+        return new NodeAggregator(...$nodes);
     }
 
 
     /**
      * Вставить копию после каждого узла, выбранного с помощью $selectors
      */
-    public function after (...$selectors): NodeProperties
+    public function after (...$selectors): NodeAggregator
     {
         $nodes = [];
         foreach ($this->targets(...$selectors) as $target) {
@@ -113,14 +113,14 @@ class NodeRegrouping
             }
         }
 
-        return new NodeProperties(...$nodes);
+        return new NodeAggregator(...$nodes);
     }
 
 
     /**
      * Вставить копию в начало каждого узла, выбранного с помощью $selectors
      */
-    public function up (...$selectors): NodeProperties
+    public function up (...$selectors): NodeAggregator
     {
         $nodes = [];
         foreach ($this->targets(...$selectors) as $target) {
@@ -139,14 +139,14 @@ class NodeRegrouping
             }
         }
 
-        return new NodeProperties(...$nodes);
+        return new NodeAggregator(...$nodes);
     }
 
 
     /**
      * Вставить копию в конец каждого узла, выбранного с помощью $selectors
      */
-    public function down (...$selectors): NodeProperties
+    public function down (...$selectors): NodeAggregator
     {
         $nodes = [];
         foreach ($this->targets(...$selectors) as $target) {
@@ -160,14 +160,14 @@ class NodeRegrouping
             }
         }
 
-        return new NodeProperties(...$nodes);
+        return new NodeAggregator(...$nodes);
     }
 
 
     /**
      * Заменить копией содержимое узлов, выбранных с помощью $selectors
      */
-    public function into (...$selectors): NodeProperties
+    public function into (...$selectors): NodeAggregator
     {
         $nodes = [];
         foreach ($this->targets(...$selectors) as $target) {
@@ -186,14 +186,14 @@ class NodeRegrouping
             }
         }
 
-        return new NodeProperties(...$nodes);
+        return new NodeAggregator(...$nodes);
     }
 
 
     /**
      * Заменить копией узлы, выбранные с помощью $selectors
      */
-    public function to (...$selectors): NodeProperties
+    public function to (...$selectors): NodeAggregator
     {
         $nodes = [];
         foreach ($this->targets(...$selectors) as $target) {
@@ -210,7 +210,7 @@ class NodeRegrouping
             $a->parentNode->removeChild($a);
         }
 
-        return new NodeProperties(...$nodes);
+        return new NodeAggregator(...$nodes);
     }
 
 }
