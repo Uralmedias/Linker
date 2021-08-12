@@ -3,7 +3,7 @@
 
 use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Select;
-use Uralmedias\Linker\Layout\NodeRegrouping;
+use Uralmedias\Linker\Layout\NodeRelocator;
 use Uralmedias\Linker\Layout\NodeAggregator;
 use ArrayIterator, Generator, DOMDocument, DOMXPath;
 
@@ -129,7 +129,7 @@ class LayoutFragment extends NodeAggregator
     }
 
 
-    public function move (...$selectors): NodeRegrouping
+    public function move (...$selectors): NodeRelocator
     {
         $nodes = [];
         foreach ($this->query(...$selectors) as $node) {
@@ -142,14 +142,14 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 
     /**
      * Расширяет текущий экземпляр контентом другого.
      */
-    public function pull (self ...$sources): NodeRegrouping
+    public function pull (self ...$sources): NodeRelocator
     {
         $nodes = [];
         foreach ($sources as $s) {
@@ -162,25 +162,25 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 
-    public function push (self ...$targets): NodeRegrouping
+    public function push (self ...$targets): NodeRelocator
     {
         $xpaths = [];
         foreach ($targets as $t) {
             array_push($xpaths, $t->xpath);
         }
 
-        return new NodeRegrouping (new ArrayIterator($xpaths), $this->document->childNodes);
+        return new NodeRelocator (new ArrayIterator($xpaths), $this->document->childNodes);
     }
 
 
     /**
      * Втавляет текстовый узел.
      */
-    public function write (string ...$strings): NodeRegrouping
+    public function write (string ...$strings): NodeRelocator
     {
         $nodes = [];
         foreach ($strings as $s) {
@@ -191,14 +191,14 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 
     /**
      * Вставляет коментарий.
      */
-    public function annotate (string ...$comments): NodeRegrouping
+    public function annotate (string ...$comments): NodeRelocator
     {
         $nodes = [];
         foreach ($comments as $c) {
@@ -209,7 +209,7 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 

@@ -21,7 +21,7 @@ use Traversable, ArrayIterator, DOMNode, DOMXPath, Generator;
  * *Длительное хранение экземпляра может привести к неожиданным
  * последствиям из-за непостоянства ссылок в PHP DOM.*
  */
-class NodeRegrouping
+class NodeRelocator
 {
 
     private array $cache;

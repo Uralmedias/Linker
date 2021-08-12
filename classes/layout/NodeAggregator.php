@@ -14,7 +14,7 @@ use ArrayIterator, Generator, Traversable, IteratorAggregate,
  *
  * Экземпляр возвращается методами `nodes` класса `LayoutFragment`,
  * и методами `before`, `after`, `up`, `down`, `into`, `to` класса
- * `NodeRegrouping`.
+ * `NodeRelocator`.
  *
  * *Длительное хранение экземпляра может привести к неожиданным
  * последствиям из-за непостоянства ссылок в PHP DOM.*

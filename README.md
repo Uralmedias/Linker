@@ -87,16 +87,16 @@ public function cut (...$selectors): self;
 public function copy (...$selectors): self;
 
 // Перемещает узлы в пределах текущего фрагмента
-public function move (...$selectors): NodeRegrouping;
+public function move (...$selectors): NodeRelocator;
 
 // Вставляет другие фрагменты в текущий
-public function put (self ...$fragments): NodeRegrouping;
+public function put (self ...$fragments): NodeRelocator;
 
 // Вставляет текстовый узел
-public function write (string ...$strings): NodeRegrouping;
+public function write (string ...$strings): NodeRelocator;
 
 // Вставляет коментарий
-public function annotate (string ...$comments): NodeRegrouping;
+public function annotate (string ...$comments): NodeRelocator;
 
 // Получает доступ к свойствам узлов фрагмента
 public function nodes (...$selectors): NodeAggregator;
@@ -111,8 +111,8 @@ public function reverse (...$selectors): NodeAggregator;
 public function randomize (...$selectors): NodeAggregator;
 ```
 
-#### NodeRegrouping
-`NodeRegrouping` инстанциируется экземпляром `LayoutFragment` для завершения изменения структуры. Позволяет выбирать место размещения новых узлов. Не рекомендуется длительное хранение экземпляра, так как он обращается к источнику и приёмнику по ссылке, а ссылки на некоторые объекты DOM могут со временем портится.
+#### NodeRelocator
+`NodeRelocator` инстанциируется экземпляром `LayoutFragment` для завершения изменения структуры. Позволяет выбирать место размещения новых узлов. Не рекомендуется длительное хранение экземпляра, так как он обращается к источнику и приёмнику по ссылке, а ссылки на некоторые объекты DOM могут со временем портится.
 
 ```php
 // Аргумент $selectors в каждом случае определяет селекторы целевых узлов
@@ -139,7 +139,7 @@ public function to (...$selectors): NodeAggregator;
 ```
 
 #### NodeAggregator
-`NodeAggregator` позволяет получать или изменять имя, значение или атрибуты конкретных узлов. Инстанциируется экземплярами `LayoutFragment` и `NodeRegrouping`. Так же, как и `NodeRegrouping` владеет только ссылкой на управляемый им объект, поэтому не рекомендуется длительное хранение экземпляров.
+`NodeAggregator` позволяет получать или изменять имя, значение или атрибуты конкретных узлов. Инстанциируется экземплярами `LayoutFragment` и `NodeRelocator`. Так же, как и `NodeRelocator` владеет только ссылкой на управляемый им объект, поэтому не рекомендуется длительное хранение экземпляров.
 
 ```php
 // Названия узлов
