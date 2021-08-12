@@ -5,7 +5,7 @@ use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeRegrouping;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use WeakReference, Generator, DOMDocument, DOMXPath;
+use ArrayIterator, Generator, DOMDocument, DOMXPath;
 
 
 /**
@@ -17,7 +17,7 @@ use WeakReference, Generator, DOMDocument, DOMXPath;
  * Экземпляр возвращается методами `fromNodes`, `fromDocument`,
  * `fromHTML`, `fromFile`, `fromOutput` фасада `Layout`.
  */
-class LayoutFragment
+class LayoutFragment extends NodeAggregator
 {
 
     private DOMDocument $document;
@@ -33,6 +33,7 @@ class LayoutFragment
     {
         $this->document = $document;
         $this->xpath = new DOMXPath($this->document);
+        parent::__construct($document->childNodes);
     }
 
 
@@ -43,6 +44,7 @@ class LayoutFragment
     {
         $this->document = clone $this->document;
         $this->xpath = new DOMXPath($this->document);
+        $this->nodes = $this->document->childNodes;
     }
 
 
@@ -205,13 +207,8 @@ class LayoutFragment
      */
     public function nodes (...$selectors): NodeAggregator
     {
-        $nodes = [...$this->query(...$selectors)];
-
-        if (!empty($nodes)) {
-			 $this->clean();
-		}
-
-        return new NodeAggregator (...$nodes);
+        $this->clean();
+        return new NodeAggregator ($this->query(...$selectors));
     }
 
 
@@ -274,7 +271,7 @@ class LayoutFragment
 			 $this->clean();
 		}
 
-        return new NodeAggregator (...$result);
+        return new NodeAggregator (new ArrayIterator($result));
     }
 
 
@@ -298,7 +295,7 @@ class LayoutFragment
         }
 
         $this->clean();
-        return new NodeAggregator (...$result);
+        return new NodeAggregator (new ArrayIterator($result));
     }
 
 

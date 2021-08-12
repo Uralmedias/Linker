@@ -3,7 +3,7 @@
 
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use DOMNode, DOMXPath, Generator;
+use ArrayIterator, DOMNode, DOMXPath, Generator;
 
 
 /**
@@ -85,7 +85,7 @@ class NodeRegrouping
             }
         }
 
-        return new NodeAggregator(...$nodes);
+        return new NodeAggregator(new ArrayIterator($nodes));
     }
 
 
@@ -113,7 +113,7 @@ class NodeRegrouping
             }
         }
 
-        return new NodeAggregator(...$nodes);
+        return new NodeAggregator(new ArrayIterator($nodes));
     }
 
 
@@ -139,7 +139,7 @@ class NodeRegrouping
             }
         }
 
-        return new NodeAggregator(...$nodes);
+        return new NodeAggregator(new ArrayIterator($nodes));
     }
 
 
@@ -160,7 +160,7 @@ class NodeRegrouping
             }
         }
 
-        return new NodeAggregator(...$nodes);
+        return new NodeAggregator(new ArrayIterator($nodes));
     }
 
 
@@ -186,7 +186,7 @@ class NodeRegrouping
             }
         }
 
-        return new NodeAggregator(...$nodes);
+        return new NodeAggregator(new ArrayIterator($nodes));
     }
 
 
@@ -210,7 +210,7 @@ class NodeRegrouping
             $a->parentNode->removeChild($a);
         }
 
-        return new NodeAggregator(...$nodes);
+        return new NodeAggregator(new ArrayIterator($nodes));
     }
 
 }

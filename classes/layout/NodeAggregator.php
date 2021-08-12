@@ -1,7 +1,8 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 
-use DOMNode, DOMCharacterData, DOMAttr, DOMElement;
+use ArrayIterator, Generator, Traversable, IteratorAggregate,
+    DOMNode, DOMCharacterData, DOMAttr, DOMElement;
 
 
 /**
@@ -18,13 +19,13 @@ use DOMNode, DOMCharacterData, DOMAttr, DOMElement;
  * *Длительное хранение экземпляра может привести к неожиданным
  * последствиям из-за непостоянства ссылок в PHP DOM.*
  */
-class NodeAggregator
+class NodeAggregator implements IteratorAggregate
 {
 
-    private array $nodes = [];
+    private Traversable $nodes;
 
 
-    public function __construct(DOMNode ...$nodes)
+    public function __construct (Traversable $nodes)
     {
         $this->nodes = $nodes;
     }
@@ -38,6 +39,14 @@ class NodeAggregator
         }
 
         return $result;
+    }
+
+
+    public function getIterator(): Generator
+    {
+        foreach ($this->nodes as $n) {
+            yield new NodeAggregator(new ArrayIterator([$n]));
+        }
     }
 
 
@@ -58,7 +67,7 @@ class NodeAggregator
         // В следующих реализациях должны были исправить, но пока
         // можно пользоваться только этим.
         if ($update !== NULL) {
-            foreach ($this->nodes as &$n) {
+            foreach ($this->nodes as $n) {
 
                 if (is_a($n, DOMElement::class)) {
 
