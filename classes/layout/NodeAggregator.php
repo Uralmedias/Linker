@@ -22,19 +22,20 @@ use ArrayIterator, Generator, Traversable, IteratorAggregate,
 class NodeAggregator implements IteratorAggregate
 {
 
-    private Traversable $nodes;
+    private array $cache;
+    private Traversable $items;
 
 
-    public function __construct (Traversable $nodes)
+    public function __construct (Traversable $items)
     {
-        $this->nodes = $nodes;
+        $this->items = $items;
     }
 
 
     public function __toString(): string
     {
         $result = '';
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             $result .= $n->ownerDocument->saveHtml($n);
         }
 
@@ -44,7 +45,7 @@ class NodeAggregator implements IteratorAggregate
 
     public function getIterator(): Generator
     {
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             yield new NodeAggregator(new ArrayIterator([$n]));
         }
     }
@@ -67,7 +68,7 @@ class NodeAggregator implements IteratorAggregate
         // В следующих реализациях должны были исправить, но пока
         // можно пользоваться только этим.
         if ($update !== NULL) {
-            foreach ($this->nodes as $n) {
+            foreach ($this->items() as $n) {
 
                 if (is_a($n, DOMElement::class)) {
 
@@ -95,7 +96,7 @@ class NodeAggregator implements IteratorAggregate
         }
 
         // возврат значения
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             if (is_a($n, DOMElement::class) or is_a($n, DOMAttr::class)) {
                 return $n->nodeName;
             }
@@ -116,7 +117,7 @@ class NodeAggregator implements IteratorAggregate
     public function value (string $update = NULL): string
     {
         if ($update !== NULL) {
-            foreach ($this->nodes as $n) {
+            foreach ($this->items() as $n) {
 
                 if (is_a($n, DOMElement::class)) {
 
@@ -138,7 +139,7 @@ class NodeAggregator implements IteratorAggregate
         }
 
         $result = "";
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             $result .= $n->textContent;
         }
         return $result;
@@ -174,7 +175,7 @@ class NodeAggregator implements IteratorAggregate
 
         // стили могут быть только у элементов
         if ($updates !== NULL) {
-            foreach ($this->nodes as $n) {
+            foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
 
                     $currentStyle = $parseStyle($n);
@@ -196,7 +197,7 @@ class NodeAggregator implements IteratorAggregate
         }
 
         // возврат значения
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             if (is_a($n, DOMElement::class)) {
                 return $parseStyle($n);
             }
@@ -222,7 +223,7 @@ class NodeAggregator implements IteratorAggregate
     {
         // классы могут быть только у элементов
         if ($updates !== NULL) {
-            foreach ($this->nodes as $n) {
+            foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
 
                     $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
@@ -255,7 +256,7 @@ class NodeAggregator implements IteratorAggregate
         }
 
         // возврат значения
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             if (is_a($n, DOMElement::class)) {
                 return preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
             }
@@ -276,7 +277,7 @@ class NodeAggregator implements IteratorAggregate
     {
         // атрибуты могут быть только у элементов
         if ($updates !== NULL) {
-            foreach ($this->nodes as $n) {
+            foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
 
                     foreach ($updates as $uName => $uValue) {
@@ -296,7 +297,7 @@ class NodeAggregator implements IteratorAggregate
         }
 
         // возврат значения
-        foreach ($this->nodes as $n) {
+        foreach ($this->items() as $n) {
             if (is_a($n, DOMElement::class)) {
 
                 $result = [];
@@ -310,6 +311,15 @@ class NodeAggregator implements IteratorAggregate
             }
         }
         return [];
+    }
+
+
+    private function items (): array
+    {
+        if (!isset($this->cache)) {
+            $this->cache = [...$this->items];
+        }
+        return $this->cache;
     }
 
 }

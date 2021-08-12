@@ -131,7 +131,18 @@ class LayoutFragment extends NodeAggregator
 
     public function move (...$selectors): NodeRegrouping
     {
-        return $this->pull($this->cut(...$selectors));
+        $nodes = [];
+        foreach ($this->query(...$selectors) as $node) {
+
+            $nodes[] = $node;
+            $node->parentNode->removeChild($node);
+        }
+
+        if (!empty($nodes)) {
+			 $this->clean();
+		}
+
+        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 
@@ -151,7 +162,7 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping ([$this->xpath], $nodes);
+        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 
@@ -162,7 +173,7 @@ class LayoutFragment extends NodeAggregator
             array_push($xpaths, $t->xpath);
         }
 
-        return new NodeRegrouping ($xpaths, [...$this->document->childNodes]);
+        return new NodeRegrouping (new ArrayIterator($xpaths), $this->document->childNodes);
     }
 
 
@@ -180,7 +191,7 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping ([$this->xpath], $nodes);
+        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 
@@ -198,7 +209,7 @@ class LayoutFragment extends NodeAggregator
 			 $this->clean();
 		}
 
-        return new NodeRegrouping ([$this->xpath], $nodes);
+        return new NodeRegrouping (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
     }
 
 

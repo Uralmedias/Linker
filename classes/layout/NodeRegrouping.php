@@ -3,7 +3,7 @@
 
 use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use ArrayIterator, DOMNode, DOMXPath, Generator;
+use Traversable, ArrayIterator, DOMNode, DOMXPath, Generator;
 
 
 /**
@@ -24,40 +24,43 @@ use ArrayIterator, DOMNode, DOMXPath, Generator;
 class NodeRegrouping
 {
 
-    private array $imports = [];
+    private array $cache;
+    private Traversable $targets;
+    private Traversable $sources;
 
 
-    public function __construct (array $targets, array $sources)
+    public function __construct (Traversable $targets, Traversable $sources)
     {
-        foreach ($targets as $t) {
-
-            $items = [];
-            foreach ($sources as $s) {
-
-                if ($s->ownerDocument->isSameNode($t->document)) {
-                    $stash = $s->cloneNode(TRUE);
-                } else {
-                    $stash = $t->document->importNode($s, TRUE);
-                }
-
-				if (is_a($stash, DOMNode::class)) {
-					array_push($items, $stash);
-				}
-            }
-
-            array_push($this->imports, [$t, $items]);
-        }
+        $this->targets = $targets;
+        $this->sources = $sources;
     }
 
 
     private function targets (...$selectors): Generator
     {
+        if (!isset($this->cache)) {
+            $this->cache = [];
+            foreach ($this->targets as $t) {
+                $items = [];
+                foreach ($this->sources as $s) {
+                    if ($s->ownerDocument->isSameNode($t->document)) {
+                        $stash = $s->cloneNode(true);
+                    } else {
+                        $stash = $t->document->importNode($s, true);
+                    }
+
+                    if (is_a($stash, DOMNode::class)) {
+                        array_push($items, $stash);
+                    }
+                }
+                array_push($this->cache, [$t, $items]);
+            }
+        }
+
         foreach ($selectors as $s) {
-
             $xpath = Select::auto($s);
-            foreach ($this->imports as $i) {
+            foreach ($this->cache as $i) {
                 foreach ($i[0]->query($xpath) as $anchor) {
-
                     yield (object) [
                         'anchor' => $anchor,
                         'items' => $i[1]
