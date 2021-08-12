@@ -1,8 +1,10 @@
 <?php namespace Uralmedias\Linker;
 
 
+require_once (__DIR__.'/../vendor/autoload.php');
+use Symfony\Component\CssSelector\CssSelectorConverter;
 use Uralmedias\Linker\Layout\LayoutFragment;
-use DOMDocument, DOMNode;
+use Exception, DOMDocument, DOMNode;
 
 
 /**
@@ -18,6 +20,8 @@ abstract class Layout
     private static array $htmlCache = [];
     private static array $fileCache = [];
     private static DOMDocument $template;
+    private static array $selectCache = [];
+    private static CssSelectorConverter $converter;
 
 
     /**
@@ -93,6 +97,81 @@ abstract class Layout
 
         $document = static::newDocument($contents, $encoding);
         return new LayoutFragment ($document);
+    }
+
+
+    /**
+     * Автоматически определеить тип селектора.
+     */
+    public static function select ($value): string
+    {
+        $cacheKey = 'auto'.$value;
+
+        if (!array_key_exists($cacheKey, self::$selectCache)) {
+
+            if (is_int($value)) {
+                self::$selectCache[$cacheKey] = static::at($value);
+            } else {
+
+                try {
+                    self::$selectCache[$cacheKey] = static::css($value);
+                } catch (Exception $e) {
+                    self::$selectCache[$cacheKey] = $value;
+                }
+            }
+        }
+
+        return self::$selectCache[$cacheKey];
+    }
+
+
+    /**
+     * Целочисленный индекс. Положительный начинается с 0
+     * и указывает позицию с начала, отрицательный начинается
+     * с -1 и указывает позицию с конца.
+     */
+    public static function at (int $position): string
+    {
+        $cacheKey = 'at'.$position;
+
+        if (!array_key_exists($cacheKey, self::$selectCache)) {
+
+            self::$selectCache[$cacheKey] = ($position < 0) ?
+                self::$selectCache[$cacheKey] = '/*[last()'.$position.']':
+                self::$selectCache[$cacheKey] = '/*['.($position + 1).']';
+        }
+
+        return self::$selectCache[$cacheKey];
+    }
+
+
+    /**
+     * Селектор CSS (будет преобразован в XPath).
+     */
+    public static function css (string $selector): string
+    {
+        $cacheKey = 'css'.$selector;
+
+        if (!array_key_exists($cacheKey, self::$selectCache)) {
+
+            self::$converter = self::$converter ?? new CssSelectorConverter();
+            self::$selectCache[$cacheKey] = self::$converter->toXPath($selector, '//');
+        }
+
+        return self::$selectCache[$cacheKey];
+    }
+
+
+    // TODO: Документировать и тестировать
+    public static function path (string ...$steps): string
+    {
+        $result = '';
+        foreach ($steps as $s) {
+            $result .= static::auto($s);
+        }
+
+        self::$selectCache['auto'.$result] = $result;
+        return $result;
     }
 
 

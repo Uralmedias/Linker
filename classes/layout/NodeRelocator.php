@@ -1,7 +1,7 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 
-use Uralmedias\Linker\Select;
+use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Layout\NodeAggregator;
 use Traversable, ArrayIterator, DOMNode, DOMXPath, Generator;
 
@@ -58,7 +58,7 @@ class NodeRelocator
         }
 
         foreach ($selectors as $s) {
-            $xpath = Select::auto($s);
+            $xpath = Layout::select($s);
             foreach ($this->cache as $i) {
                 foreach ($i[0]->query($xpath) as $anchor) {
                     yield (object) [

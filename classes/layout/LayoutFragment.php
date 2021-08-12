@@ -2,7 +2,6 @@
 
 
 use Uralmedias\Linker\Layout;
-use Uralmedias\Linker\Select;
 use Uralmedias\Linker\Layout\NodeRelocator;
 use Uralmedias\Linker\Layout\NodeAggregator;
 use ArrayIterator, Generator, DOMDocument, DOMXPath;
@@ -322,7 +321,7 @@ class LayoutFragment extends NodeAggregator
         $result = 0;
         foreach ($selectors as $s) {
 
-            $request = Select::auto($s);
+            $request = Layout::select($s);
             if (!array_key_exists($request, $this->queryCache)) {
                 $this->queryCache[$request] = $this->xpath->query($request);
             }
@@ -351,7 +350,7 @@ class LayoutFragment extends NodeAggregator
 
             foreach ($selectors as $s) {
 
-                $request = Select::auto($s);
+                $request = Layout::select($s);
                 if (!array_key_exists($request, $this->queryCache)) {
                     $this->queryCache[$request] = $this->xpath->query($request);
                 }
