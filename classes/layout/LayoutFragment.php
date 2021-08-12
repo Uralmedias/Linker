@@ -53,7 +53,7 @@ class LayoutFragment extends NodeAggregator
     public function __toString(): string
     {
         if ($this->stringCache === NULL) {
-            $this->stringCache = $this->document->saveHTML();
+            $this->stringCache = html_entity_decode($this->document->saveHTML());
         }
 
         return $this->stringCache;
