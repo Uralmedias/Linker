@@ -314,7 +314,7 @@ class NodeAggregator implements IteratorAggregate
     }
 
 
-    private function items (): array
+    protected function items (): array
     {
         if (!isset($this->cache)) {
             $this->cache = [...$this->items];

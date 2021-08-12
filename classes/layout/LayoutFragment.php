@@ -148,11 +148,11 @@ class LayoutFragment extends NodeAggregator
     /**
      * Расширяет текущий экземпляр контентом другого.
      */
-    public function pull (self ...$sources): NodeRelocator
+    public function pull (NodeAggregator ...$sources): NodeRelocator
     {
         $nodes = [];
         foreach ($sources as $s) {
-            foreach ($s->document->childNodes as $node) {
+            foreach ($s->items() as $node) {
                 array_push($nodes, $node);
             }
         }
