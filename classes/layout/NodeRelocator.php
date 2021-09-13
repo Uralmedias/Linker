@@ -136,7 +136,7 @@ class NodeRelocator
 				if (!$i) continue;
                 $node = $first ?
                     $a->insertBefore($i->cloneNode(TRUE), $first):
-                    $a->appenChild($i->cloneNode(TRUE));
+                    $a->appendChild($i->cloneNode(TRUE));
 
                 array_push($nodes, $node);
             }
