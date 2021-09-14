@@ -66,8 +66,8 @@ class NodeAggregatorTest extends AbstractTestCase
         $properties = new NodeAggregator($this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
         $properties->attributes(['data-test' => '12345 number']);
-        $properties->attributes(['data-test' => ['/\d+/', 'test', 'preg_replace']]);
-        $properties->attributes(['data-test' => ['number', 'attribute']]);
+        $properties->attributes(['data-*' => ['/\d+/', 'test', 'preg_replace']]);
+        $properties->attributes(['/data[-]test/' => ['number', 'attribute']]);
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');
 
         //TODO: Протестировать все аргументы

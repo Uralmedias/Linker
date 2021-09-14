@@ -277,29 +277,38 @@ class NodeAggregator implements IteratorAggregate
         if ($updates !== NULL) {
             foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
-
                     foreach ($updates as $uName => $uParams) {
 
-                        if (is_array($uParams)) {
-
-                            $value = $n->getAttribute($uName) ?: '';
-                            $uParams[0] = $uParams[0] ?? $value;
-                            $uParams[1] = $uParams[1] ?? $uParams[0];
-                            $uParams[2] = $uParams[2] ?? 'str_replace';
-                            $value = $uParams[2]($uParams[0], $uParams[1], $value);
-
-                        } else {
-                            $value = strval($uParams);
+                        $match = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $uName) ? 'preg_match': 'fnmatch';
+                        if (!$n->hasAttribute($uName) and preg_match('/^[\w:_-]+$/', $uName)) {
+                            $n->setAttribute($uName, '');
                         }
 
-						if (!empty($value)) {
-							$value = htmlentities(html_entity_decode($value));
-						}
+                        foreach ($n->attributes as $attr) {
+                            if ($match($uName, $attr->name)) {
+                                if (is_array($uParams)) {
 
-                        if (empty($value) and $remove) {
-                            $n->removeAttribute($uName);
-                        } else {
-                            $n->setAttribute($uName, $value);
+                                    $value = $attr->value ?: '';
+                                    $uParams[0] = $uParams[0] ?? $value;
+                                    $uParams[1] = $uParams[1] ?? $uParams[0];
+                                    $uParams[2] = $uParams[2] ?? 'str_replace';
+
+                                    $value = $uParams[2]($uParams[0], $uParams[1], $value);
+
+                                } else {
+                                    $value = strval($uParams);
+                                }
+
+                                if (!empty($value)) {
+                                    $value = htmlentities(html_entity_decode($value));
+                                }
+
+                                if (empty($value) and $remove) {
+                                    $n->removeAttribute($attr->name);
+                                } else {
+                                    $attr->value = $value;
+                                }
+                            }
                         }
                     }
                 }
