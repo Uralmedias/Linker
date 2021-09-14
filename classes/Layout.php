@@ -52,10 +52,9 @@ abstract class Layout
      */
     public static function fromHTML ($contents, string $encoding = "UTF-8"): LayoutFragment
     {
-        if ($contents = strval($contents)) {
-            $document = static::newDocument($contents, $encoding);
-            return new LayoutFragment($document);
-        }
+        $contents = strval($contents) ?: '';
+        $document = static::newDocument($contents, $encoding);
+        return new LayoutFragment($document);
     }
 
 

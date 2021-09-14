@@ -188,9 +188,8 @@ class LayoutFragment extends NodeAggregator
     {
         $nodes = [];
         foreach ($strings as $s) {
-            if ($s = strval($s)) {
-                $nodes[] = $this->document->createTextNode($s);
-            }
+            $s = strval($s) ?: '';
+            $nodes[] = $this->document->createTextNode($s);
         }
 
         if (!empty($nodes)) {
@@ -208,9 +207,8 @@ class LayoutFragment extends NodeAggregator
     {
         $nodes = [];
         foreach ($comments as $c) {
-            if ($c = strval($c)) {
-                $nodes[] = $this->document->createComment($c);
-            }
+            $c = strval($c) ?: '';
+            $nodes[] = $this->document->createComment($c);
         }
 
         if (!empty($nodes)) {
