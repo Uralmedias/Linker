@@ -219,7 +219,7 @@ class NodeAggregator implements IteratorAggregate
      *
      * *При использовании регулярных выражений можно использовать групировки и подстановки.*
      */
-    public function classes (array $updates = NULL, ?bool $assumeRE = NULL): array
+    public function classes (array $updates = NULL, callable $method = NULL): array
     {
         // классы могут быть только у элементов
         if ($updates !== NULL) {
@@ -227,7 +227,7 @@ class NodeAggregator implements IteratorAggregate
                 if (is_a($n, DOMElement::class)) {
 
                     $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
-                    if ($assumeRE === NULL) {
+                    if ($method === NULL) {
 
                         foreach ($updates as $uKey => $uValue) {
                             if (is_string($uKey)) {
@@ -245,9 +245,7 @@ class NodeAggregator implements IteratorAggregate
                         $replacement = array_values($updates);
 
                         foreach ($classes as &$c) {
-                            $c = $assumeRE ?
-                                preg_replace ($search, $replacement, $c):
-                                str_replace ($search, $replacement, $c);
+                            $c = $method($search, $replacement, $c);
                         }
                     }
                     $n->setAttribute('class', implode(' ', array_filter($classes)));

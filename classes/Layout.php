@@ -169,7 +169,7 @@ abstract class Layout
     {
         $result = '';
         foreach ($steps as $s) {
-            $result .= static::auto($s);
+            $result .= static::select($s);
         }
 
         self::$selectCache['auto'.$result] = $result;
