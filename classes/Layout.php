@@ -50,10 +50,12 @@ abstract class Layout
     /**
      * Создать фрагмент из строки, содержащей разметку.
      */
-    public static function fromHTML (string $contents, string $encoding = "UTF-8"): LayoutFragment
+    public static function fromHTML ($contents, string $encoding = "UTF-8"): LayoutFragment
     {
-        $document = static::newDocument($contents, $encoding);
-        return new LayoutFragment ($document);
+        if ($contents = strval($contents)) {
+            $document = static::newDocument($contents, $encoding);
+            return new LayoutFragment($document);
+        }
     }
 
 

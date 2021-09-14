@@ -148,10 +148,15 @@ class LayoutFragment extends NodeAggregator
     /**
      * Расширяет текущий экземпляр контентом другого.
      */
-    public function pull (NodeAggregator ...$sources): NodeRelocator
+    public function pull (...$sources): NodeRelocator
     {
         $nodes = [];
         foreach ($sources as $s) {
+
+            if (!is_a($s, NodeAggregator::class)) {
+                $s = Layout::fromHTML($s);
+            }
+
             foreach ($s->items() as $node) {
                 array_push($nodes, $node);
             }
@@ -179,11 +184,13 @@ class LayoutFragment extends NodeAggregator
     /**
      * Втавляет текстовый узел.
      */
-    public function write (string ...$strings): NodeRelocator
+    public function write (...$strings): NodeRelocator
     {
         $nodes = [];
         foreach ($strings as $s) {
-            $nodes[] = $this->document->createTextNode($s);
+            if ($s = strval($s)) {
+                $nodes[] = $this->document->createTextNode($s);
+            }
         }
 
         if (!empty($nodes)) {
@@ -197,11 +204,13 @@ class LayoutFragment extends NodeAggregator
     /**
      * Вставляет коментарий.
      */
-    public function annotate (string ...$comments): NodeRelocator
+    public function annotate (...$comments): NodeRelocator
     {
         $nodes = [];
         foreach ($comments as $c) {
-            $nodes[] = $this->document->createComment($c);
+            if ($c = strval($c)) {
+                $nodes[] = $this->document->createComment($c);
+            }
         }
 
         if (!empty($nodes)) {
