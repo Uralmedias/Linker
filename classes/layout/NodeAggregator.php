@@ -273,23 +273,35 @@ class NodeAggregator implements IteratorAggregate
      * значение атрибута остаётся не тронутым. Если значение равно `NULL`, атрибут удаляется,
      * кроме случаев, когда `$nullValues = TRUE`. В этом случае устанавливается `NULL`.
      */
-    public function attributes (array $updates = NULL, bool $nullValues = FALSE): array
+    public function attributes (array $updates = NULL, bool $remove = TRUE): array
     {
         // атрибуты могут быть только у элементов
         if ($updates !== NULL) {
             foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
 
-                    foreach ($updates as $uName => $uValue) {
+                    foreach ($updates as $uName => $uParams) {
 
-						if (!empty($uValue)) {
-							$uValue = htmlentities(html_entity_decode($uValue));
+                        if (is_array($uParams)) {
+
+                            $value = $n->getAttribute($uName) ?: '';
+                            $uParams[0] = $uParams[0] ?? $value;
+                            $uParams[1] = $uParams[1] ?? $uParams[0];
+                            $uParams[2] = $uParams[2] ?? 'str_replace';
+                            $value = $uParams[2]($uParams[0], $uParams[1], $value);
+
+                        } else {
+                            $value = strval($uParams);
+                        }
+
+						if (!empty($value)) {
+							$value = htmlentities(html_entity_decode($value));
 						}
 
-                        if (($uValue === NULL) and !$nullValues) {
+                        if (empty($value) and $remove) {
                             $n->removeAttribute($uName);
                         } else {
-                            $n->setAttribute($uName, $uValue);
+                            $n->setAttribute($uName, $value);
                         }
                     }
                 }
