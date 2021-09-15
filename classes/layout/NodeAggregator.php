@@ -2,7 +2,7 @@
 
 
 use ArrayIterator, Generator, Traversable, IteratorAggregate,
-    DOMNode, DOMCharacterData, DOMAttr, DOMElement;
+    DOMCharacterData, DOMAttr, DOMElement;
 
 
 /**
@@ -312,7 +312,11 @@ class NodeAggregator implements IteratorAggregate
                     }
 
                     foreach ($n->attributes as $a) {
-                        $n->removeAttribute($a->name);
+                        if ($remove) {
+                            $n->removeAttribute($a->name);
+                        } else {
+                            $n->setAttribute($a->name, NULL);
+                        }
                     }
                 }
             }
@@ -378,6 +382,130 @@ class NodeAggregator implements IteratorAggregate
                     break;
                 }
             }
+        }
+
+        return $result ?: [];
+    }
+
+
+    /**
+     *
+     *
+     */
+    public function url ($attributes = NULL, $updates = '', bool $remove = TRUE): array
+    {
+        $result = NULL;
+
+        // Нахождение узлов, к которым будет применяться метод //
+        $targets = [];
+        $attributes = is_array($attributes) ? $attributes : [$attributes];
+        $attributes = array_unique(array_filter($attributes));
+        if (empty($attributes)) {
+            $targets = $this->items();
+        } else {
+            foreach ($attributes as $aName) {
+
+                $match = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $aName) ? 'preg_match': 'fnmatch';
+                foreach ($this->items() as $n) {
+                    if (is_a($n, DOMElement::class)) {
+                        foreach ($n->attributes as $a) {
+                            if ($match($aName, $a->name)) {
+                                array_push($targets, $a);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Разбирает URL на компоненты
+        $parseUrl = function ($url): array {
+
+            if (is_string($url)) {
+                if ($url = parse_url($url)) {
+
+                    $query = [];
+                    parse_str($url['query'], $query);
+                    if ($query) {
+                        $url['query'] = $query;
+                    }
+                }
+            }
+
+            return is_array($url) ? $url : [];
+        };
+
+        // Собирает URL из компонентов
+        $buildUrl = function ($url): string {
+
+            if (is_array($url)) {
+
+                $scheme   = !empty($url['scheme']) ? $url['scheme'] . '://' : '';
+                $host     = !empty($url['host']) ? $url['host'] : '';
+                $port     = !empty($url['port']) ? ':' . $url['port'] : '';
+                $user     = !empty($url['user']) ? $url['user'] : '';
+                $pass     = !empty($url['pass']) ? ':' . $url['pass']  : '';
+                $pass     = ($user || $pass) ? "$pass@" : '';
+                $path     = !empty($url['path']) ? $url['path'] : '';
+                $query    = !empty($url['query']) ? '?' . $url['query'] : '';
+                $fragment = !empty($url['fragment']) ? '#' . $url['fragment'] : '';
+
+                $url = "$scheme$user$pass$host$port$path$query$fragment";
+            }
+
+            return is_string($url) ? $url : '';
+        };
+
+        if ($updates === NULL) {
+            foreach ($targets as $node) {
+
+                if ($result === NULL) {
+                    $result = $parseUrl($node->value);
+                }
+
+                if ($remove) {
+                    $node->parentNode->removeChild($node);
+                } else {
+                    $node->value = NULL;
+                }
+            }
+        } elseif (!empty($updates)) {
+
+            $updates = is_string($updates) ?
+                $parseUrl($updates):
+                (is_array($updates)? $updates : []);
+
+            foreach ($targets as $node) {
+
+                $source = $parseUrl($node->value);
+
+                if (($result === NULL) and isset($targets[0])) {
+                    $result = $source;
+                }
+
+                foreach ($updates as $uName => $uParams) {
+                    if (is_array($uParams)) {
+
+                        $source[$uName] = $source[$uName] ?? '';
+                        $uParams[0] = $uParams[0] ?? $source[$uName];
+                        $uParams[1] = $uParams[1] ?? $uParams[0];
+                        $uParams[2] = $uParams[2] ?? 'str_replace';
+
+                        $source[$uName] = $uParams[2]($uParams[0], $uParams[1], $source[$uName]);
+
+                    } else {
+                        $source[$uName] = strval($uParams);
+                    }
+                }
+
+                $node->value = $buildUrl($source);
+
+            }
+
+        }
+
+        if (($result === NULL) and isset($targets[0])) {
+            $result = $parseUrl($targets[0]->value);
         }
 
         return $result ?: [];
