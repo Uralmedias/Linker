@@ -164,12 +164,14 @@ class NodeAggregator implements IteratorAggregate
 
             $rules = explode(';', $e->getAttribute('style') ?? '');
             $styles = [];
+
             foreach ($rules as $r) {
                 $r = explode (':', $r);
                 if (count($r) == 2) {
                     $styles[trim($r[0])] = trim($r[1]);
                 }
             }
+
             return $styles;
         };
 
@@ -179,6 +181,7 @@ class NodeAggregator implements IteratorAggregate
                 if (is_a($n, DOMElement::class)) {
 
                     $currentStyle = $parseStyle($n);
+
                     foreach ($updates as $uName => $uValue) {
                         if ($uValue === NULL) {
                             unset($currentStyle[$uName]);
@@ -219,14 +222,31 @@ class NodeAggregator implements IteratorAggregate
      *
      * *При использовании регулярных выражений можно использовать групировки и подстановки.*
      */
-    public function classes (array $updates = NULL, callable $method = NULL): array
+    public function classes (?array $updates = [], callable $method = NULL): array
     {
-        // классы могут быть только у элементов
-        if ($updates !== NULL) {
+        $result = NULL;
+
+        if ($updates === NULL) {
+            foreach ($this->items() as $n) {
+                if (is_a($n, DOMElement::class) and $n->hasAttribute('class')) {
+
+                    if ($result === NULL) {
+                        $result =  preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
+                    }
+
+                    $n->setAttribute('class', '');
+                }
+            }
+        } elseif (!empty($updates) and ($updates = is_array($updates) ? $updates : [$updates])) {
             foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
 
                     $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
+
+                    if ($result === null) {
+                        $result = $classes;
+                    }
+
                     if ($method === NULL) {
 
                         foreach ($updates as $uKey => $uValue) {
@@ -243,23 +263,27 @@ class NodeAggregator implements IteratorAggregate
 
                         $search = array_keys($updates);
                         $replacement = array_values($updates);
-
                         foreach ($classes as &$c) {
                             $c = $method($search, $replacement, $c);
                         }
                     }
+
                     $n->setAttribute('class', implode(' ', array_filter($classes)));
                 }
             }
         }
 
-        // возврат значения
-        foreach ($this->items() as $n) {
-            if (is_a($n, DOMElement::class)) {
-                return preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
+        if ($result === NULL) {
+            foreach ($this->items() as $n) {
+                if (is_a($n, DOMElement::class)) {
+
+                   $result = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
+                   break;
+                }
             }
         }
-        return [];
+
+        return $result ?: [];
     }
 
 
@@ -271,12 +295,39 @@ class NodeAggregator implements IteratorAggregate
      * значение атрибута остаётся не тронутым. Если значение равно `NULL`, атрибут удаляется,
      * кроме случаев, когда `$nullValues = TRUE`. В этом случае устанавливается `NULL`.
      */
-    public function attributes (array $updates = NULL, bool $remove = TRUE): array
+    public function attributes (?array $updates = [], bool $remove = TRUE): array
     {
-        // атрибуты могут быть только у элементов
-        if ($updates !== NULL) {
+        $result = NULL;
+
+        if ($updates === NULL) {
             foreach ($this->items() as $n) {
                 if (is_a($n, DOMElement::class)) {
+
+                    if ($result === NULL) {
+
+                        $result = [];
+                        foreach ($n->attributes as $a) {
+                            $result[$a->name] = $a->value;
+                        }
+                    }
+
+                    foreach ($n->attributes as $a) {
+                        $n->removeAttribute($a->name);
+                    }
+                }
+            }
+        } elseif (!empty($updates)) {
+            foreach ($this->items() as $n) {
+                if (is_a($n, DOMElement::class)) {
+
+                    if ($result === NULL) {
+
+                        $result = [];
+                        foreach ($n->attributes as $a) {
+                            $result[$a->name] = $a->value;
+                        }
+                    }
+
                     foreach ($updates as $uName => $uParams) {
 
                         $match = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $uName) ? 'preg_match': 'fnmatch';
@@ -315,21 +366,21 @@ class NodeAggregator implements IteratorAggregate
             }
         }
 
-        // возврат значения
-        foreach ($this->items() as $n) {
-            if (is_a($n, DOMElement::class)) {
+        if ($result === NULL) {
+            foreach ($this->items() as $n) {
+                if (is_a($n, DOMElement::class)) {
 
-                $result = [];
-                $length = $n->attributes->length;
-                for ($i = 0; $i < $length; ++$i) {
-                    $item = $n->attributes->item($i);
-                    $result[$item->name] = $item->value;
+                    $result = [];
+                    foreach ($n->attributes as $a) {
+                        $result[$a->name] = $a->value;
+                    }
+
+                    break;
                 }
-
-                return $result;
             }
         }
-        return [];
+
+        return $result ?: [];
     }
 
 
