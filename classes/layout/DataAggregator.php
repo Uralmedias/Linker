@@ -20,7 +20,7 @@ class DataAggregator implements IteratorAggregate
     public function __toString(): string
     {
         foreach ($this->items() as $n) {
-            if (is_a($n, DOMAttr::class)) {
+            if (is_a($n, DOMNode::class)) {
                 return $n->value ?: '';
             }
         }
