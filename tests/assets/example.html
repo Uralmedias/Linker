@@ -47,15 +47,35 @@
                 <li id="item6" class="b_list__item">Item #6</li>
             </ol>
         </nav>
+        <div>
+            <a class="test-link" href = 'http://exmple.org/test?test=test#test'>Test</a>
+            <a class="test-link" href = 'http://exmple.org/test?test=test#test'>Test</a>
+            <a class="test-link" href = 'http://exmple.org/test?test=test#test'>Test</a>
+        </div>
         <main class="b_main">
-            <img src="http://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="">
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
-            tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
-            quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
-            consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
-            cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
-            proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
-            <a href="https://google.com/">Google</a>
+            <article>
+                <img src="http://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="">
+                <h2>Lorem ipsum</h2>
+                <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+                cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                <a href="https://google.com/">Google</a>
+            </article>
+            <article itemscope itemtype="https://schema.org/Article">
+                <img itemprop="image" src="http://www.google.com/images/branding/googlelogo/2x/googlelogo_color_92x30dp.png" alt="">
+                <h2 itemprop="name">Lorem ipsum</h2>
+                <p itemprop="articleBody">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod
+                tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam,
+                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo
+                consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse
+                cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non
+                proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+                <div itemprop="author">John Doe</div>
+                <a href="https://google.com/">Google</a>
+            </article>
         </main>
     </body>
 </html>
