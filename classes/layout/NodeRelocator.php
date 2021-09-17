@@ -3,7 +3,7 @@
 
 use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use Traversable, ArrayIterator, DOMNode, DOMXPath, Generator;
+use Traversable, ArrayIterator, DOMNode, Generator;
 
 
 /**
@@ -25,49 +25,13 @@ class NodeRelocator
 {
 
     private array $cache;
-    private Traversable $targets;
     private Traversable $sources;
 
 
     public function __construct (Traversable $targets, Traversable $sources)
     {
-        $this->targets = $targets;
+        $this->GetTargets = $targets;
         $this->sources = $sources;
-    }
-
-
-    private function targets (...$selectors): Generator
-    {
-        if (!isset($this->cache)) {
-            $this->cache = [];
-            foreach ($this->targets as $t) {
-                $items = [];
-                foreach ($this->sources as $s) {
-                    if ($s->ownerDocument->isSameNode($t->document)) {
-                        $stash = $s->cloneNode(true);
-                    } else {
-                        $stash = $t->document->importNode($s, true);
-                    }
-
-                    if (is_a($stash, DOMNode::class)) {
-                        array_push($items, $stash);
-                    }
-                }
-                array_push($this->cache, [$t, $items]);
-            }
-        }
-
-        foreach ($selectors as $s) {
-            $xpath = Layout::select($s);
-            foreach ($this->cache as $i) {
-                foreach ($i[0]->query($xpath) as $anchor) {
-                    yield (object) [
-                        'anchor' => $anchor,
-                        'items' => $i[1]
-                    ];
-                }
-            }
-        }
     }
 
 
@@ -77,7 +41,7 @@ class NodeRelocator
     public function before (...$selectors): NodeAggregator
     {
         $nodes = [];
-        foreach ($this->targets(...$selectors) as $target) {
+        foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
             foreach ($target->items as $i) {
@@ -98,7 +62,7 @@ class NodeRelocator
     public function after (...$selectors): NodeAggregator
     {
         $nodes = [];
-        foreach ($this->targets(...$selectors) as $target) {
+        foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
             $first = null;
@@ -126,7 +90,7 @@ class NodeRelocator
     public function up (...$selectors): NodeAggregator
     {
         $nodes = [];
-        foreach ($this->targets(...$selectors) as $target) {
+        foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
             $first = $a->firstChild;
@@ -152,7 +116,7 @@ class NodeRelocator
     public function down (...$selectors): NodeAggregator
     {
         $nodes = [];
-        foreach ($this->targets(...$selectors) as $target) {
+        foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
             foreach ($target->items as $i) {
@@ -173,7 +137,7 @@ class NodeRelocator
     public function into (...$selectors): NodeAggregator
     {
         $nodes = [];
-        foreach ($this->targets(...$selectors) as $target) {
+        foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
 
@@ -199,7 +163,7 @@ class NodeRelocator
     public function to (...$selectors): NodeAggregator
     {
         $nodes = [];
-        foreach ($this->targets(...$selectors) as $target) {
+        foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
 
@@ -214,6 +178,41 @@ class NodeRelocator
         }
 
         return new NodeAggregator(new ArrayIterator($nodes));
+    }
+
+
+    private function GetTargets (...$selectors): Generator
+    {
+        if (!isset($this->cache)) {
+            $this->cache = [];
+            foreach ($this->GetTargets as $t) {
+                $items = [];
+                foreach ($this->sources as $s) {
+                    if ($s->ownerDocument->isSameNode($t->document)) {
+                        $stash = $s->cloneNode(true);
+                    } else {
+                        $stash = $t->document->importNode($s, true);
+                    }
+
+                    if (is_a($stash, DOMNode::class)) {
+                        array_push($items, $stash);
+                    }
+                }
+                array_push($this->cache, [$t, $items]);
+            }
+        }
+
+        foreach ($selectors as $s) {
+            $xpath = Layout::select($s);
+            foreach ($this->cache as $i) {
+                foreach ($i[0]->query($xpath) as $anchor) {
+                    yield (object) [
+                        'anchor' => $anchor,
+                        'items' => $i[1]
+                    ];
+                }
+            }
+        }
     }
 
 }

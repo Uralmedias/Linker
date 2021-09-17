@@ -29,7 +29,7 @@ abstract class Layout
      */
     public static function fromNodes (DOMNode ...$nodes): LayoutFragment
     {
-        $document = static::newDocument();
+        $document = static::NewDocument();
         foreach ($nodes as $n) {
             $document->appendChild($document->importNode($n, TRUE));
         }
@@ -53,7 +53,7 @@ abstract class Layout
     public static function fromHTML ($contents, string $encoding = "UTF-8"): LayoutFragment
     {
         $contents = strval($contents) ?: '';
-        $document = static::newDocument($contents, $encoding);
+        $document = static::NewDocument($contents, $encoding);
         return new LayoutFragment($document);
     }
 
@@ -70,7 +70,7 @@ abstract class Layout
             if (!isset(self::$fileCache[$cacheKey]) or (self::$fileCache[$cacheKey]['time'] !== fileatime($filename))) {
 
                 $contents = file_get_contents($filename);
-                $document = static::newDocument($contents, $encoding);
+                $document = static::NewDocument($contents, $encoding);
                 self::$fileCache[$cacheKey] = [
                     'time' => fileatime($filename),
                     'data' => $document
@@ -81,7 +81,7 @@ abstract class Layout
         }
 
         $contents = file_get_contents($filename);
-        $document = static::newDocument($contents, $encoding);
+        $document = static::NewDocument($contents, $encoding);
         return new LayoutFragment ($document);
     }
 
@@ -96,7 +96,7 @@ abstract class Layout
 		$contents = ob_get_contents();
         ob_end_clean();
 
-        $document = static::newDocument($contents, $encoding);
+        $document = static::NewDocument($contents, $encoding);
         return new LayoutFragment ($document);
     }
 
@@ -176,7 +176,7 @@ abstract class Layout
     }
 
 
-    private static function newDocument (string $contents = NULL, string $encoding = 'UTF-8')
+    private static function NewDocument (string $contents = NULL, string $encoding = 'UTF-8')
     {
 		if (!isset(self::$template)) {
 

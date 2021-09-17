@@ -71,7 +71,11 @@ class NodeAggregatorTest extends AbstractTestCase
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');
 
         $read = $properties->attributes();
-        $this->assertNoRegression(var_export($read, true), 'get.txt');
+        $classes = [];
+        foreach ($read as $k => $v) {
+            $classes[$k] = get_class($v);
+        }
+        $this->assertNoRegression(var_export($classes, true), 'get.txt');
 
         $read['data-test']->value('test data aggregator');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set_node.html');

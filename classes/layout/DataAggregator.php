@@ -19,7 +19,7 @@ class DataAggregator implements IteratorAggregate
 
     public function __toString(): string
     {
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             if (is_a($n, DOMNode::class)) {
                 return $n->value ?: '';
             }
@@ -31,7 +31,7 @@ class DataAggregator implements IteratorAggregate
 
     public function getIterator(): Generator
     {
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             yield new DataAggregator(new ArrayIterator([$n]));
         }
     }
@@ -54,7 +54,7 @@ class DataAggregator implements IteratorAggregate
         // В следующих реализациях должны были исправить, но пока
         // можно пользоваться только этим.
         if ($update !== NULL) {
-            foreach ($this->items() as $n) {
+            foreach ($this->GetNodes() as $n) {
 
                 if (is_a($n, DOMElement::class)) {
 
@@ -82,7 +82,7 @@ class DataAggregator implements IteratorAggregate
         }
 
         // возврат значения
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             if (is_a($n, DOMElement::class) or is_a($n, DOMAttr::class)) {
                 return $n->nodeName;
             }
@@ -103,7 +103,7 @@ class DataAggregator implements IteratorAggregate
     public function value (string $update = NULL): string
     {
         if ($update !== NULL) {
-            foreach ($this->items() as $n) {
+            foreach ($this->GetNodes() as $n) {
 
                 if (is_a($n, DOMElement::class)) {
 
@@ -125,19 +125,76 @@ class DataAggregator implements IteratorAggregate
         }
 
         $result = "";
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             $result .= $n->textContent;
         }
         return $result;
     }
 
 
-    protected function items (): array
+    protected static function UpdateValue (?string $value, $update): ?string
+    {
+        $value = $value ?: '';
+
+        if (is_array($update)) {
+
+            $update[0] = $update[0] ?? $value;
+            $update[1] = $update[1] ?? $update[0];
+            $update[2] = $update[2] ?? 'str_replace';
+
+            return $update[2]($update[0], $update[1], $value);
+        }
+
+        return $update === NULL ? NULL : strval($update);
+    }
+
+
+    protected static function GetMatcher (string $pattern, $caseSensitivity = FALSE): callable
+    {
+        $simple = function (string $value) use ($pattern, $caseSensitivity): bool {
+            return $caseSensitivity?
+                $pattern === $value:
+                strtolower($pattern) === strtolower($value);
+        };
+
+        $regexp = function (string $value) use ($pattern, $caseSensitivity): bool {
+            return preg_match($pattern, $value);
+        };
+
+        $wildcard = function (string $value) use ($pattern, $caseSensitivity): bool {
+            return fnmatch($pattern, $value);
+        };
+
+        $result = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $pattern) ? $regexp : $wildcard;
+        $result = preg_match('/^[\w\s_-]+$/', $pattern) ? $simple : $result;
+
+        return $result;
+    }
+
+
+    protected function GetNodes (string ...$classNemes): array
     {
         if (!isset($this->cache)) {
             $this->cache = [...$this->items];
         }
-        return $this->cache;
+
+        $result = [];
+        if (empty($classNemes)) {
+            $result = $this->cache;
+        } else {
+
+            foreach ($this->GetNodes() as $n) {
+                foreach ($classNemes as $class) {
+                    if (is_a($n, $class)) {
+
+                        $result[] = $n;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return $result;
     }
 
 }

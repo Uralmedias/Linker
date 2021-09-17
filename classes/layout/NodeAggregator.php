@@ -25,7 +25,7 @@ class NodeAggregator extends DataAggregator
     public function __toString(): string
     {
         $result = '';
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             $result .= $n->ownerDocument->saveHtml($n);
         }
 
@@ -35,7 +35,7 @@ class NodeAggregator extends DataAggregator
 
     public function getIterator(): Generator
     {
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             yield new NodeAggregator(new ArrayIterator([$n]));
         }
     }
@@ -72,7 +72,7 @@ class NodeAggregator extends DataAggregator
 
         // стили могут быть только у элементов
         if ($updates !== NULL) {
-            foreach ($this->items() as $n) {
+            foreach ($this->GetNodes() as $n) {
                 if (is_a($n, DOMElement::class)) {
 
                     $currentStyle = $parseStyle($n);
@@ -95,7 +95,7 @@ class NodeAggregator extends DataAggregator
         }
 
         // возврат значения
-        foreach ($this->items() as $n) {
+        foreach ($this->GetNodes() as $n) {
             if (is_a($n, DOMElement::class)) {
                 return $parseStyle($n);
             }
@@ -117,68 +117,46 @@ class NodeAggregator extends DataAggregator
      *
      * *При использовании регулярных выражений можно использовать групировки и подстановки.*
      */
-    public function classes (?array $updates = [], callable $method = NULL): array
+    public function classes ($updates = [], bool $remove = TRUE): array
     {
-        $result = NULL;
+        $result =[];
+        if (is_string($updates)) {
+            $updates = preg_split('/\s+/', $updates);
+        }
 
-        if ($updates === NULL) {
-            foreach ($this->items() as $n) {
-                if (is_a($n, DOMElement::class) and $n->hasAttribute('class')) {
+        foreach ($this->GetNodes(DOMElement::class) as $n) {
 
-                    if ($result === NULL) {
-                        $result =  preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
-                    }
+            $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
+            array_push($result, ...$classes);
 
-                    $n->setAttribute('class', '');
+            if ($updates === null) {
+                if ($remove) {
+                    $n->removeAttribute('class');
+                } else {
+                    $n->setAttribute('class', NULL);
                 }
-            }
-        } elseif (!empty($updates) and ($updates = is_array($updates) ? $updates : [$updates])) {
-            foreach ($this->items() as $n) {
-                if (is_a($n, DOMElement::class)) {
+            } elseif (!empty($updates)) {
+                foreach ($updates as $uKey => $uData) {
 
-                    $classes = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
+                    if (is_string($uKey)) {
 
-                    if ($result === null) {
-                        $result = $classes;
-                    }
-
-                    if ($method === NULL) {
-
-                        foreach ($updates as $uKey => $uValue) {
-                            if (is_string($uKey)) {
-                                if (($i = array_search($uKey, $classes)) !== FALSE) {
-                                    $classes[$i] = $uValue;
-                                }
-                            } else {
-                                array_push($classes, $uValue);
+                        $match = static::GetMatcher($uKey);
+                        foreach ($classes as &$cName) {
+                            if ($match($cName)) {
+                                $cName = static::UpdateValue($cName, $uData);
                             }
                         }
 
                     } else {
-
-                        $search = array_keys($updates);
-                        $replacement = array_values($updates);
-                        foreach ($classes as &$c) {
-                            $c = $method($search, $replacement, $c);
-                        }
+                        $classes[] = strval($uData);
                     }
-
-                    $n->setAttribute('class', implode(' ', array_filter($classes)));
                 }
             }
+
+            $n->setAttribute('class', implode(' ', array_unique(array_filter($classes))));
         }
 
-        if ($result === NULL) {
-            foreach ($this->items() as $n) {
-                if (is_a($n, DOMElement::class)) {
-
-                   $result = preg_split('/\s+/', ($n->getAttribute('class') ?? ''));
-                   break;
-                }
-            }
-        }
-
-        return $result ?: [];
+        return array_unique(array_filter($result));
     }
 
 
@@ -194,79 +172,45 @@ class NodeAggregator extends DataAggregator
     {
         $result = [];
 
-        if ($updates === NULL) {
-            foreach ($this->items() as $n) {
-                if (is_a($n, DOMElement::class)) {
+        foreach ($this->GetNodes(DOMElement::class) as $n) {
 
-                    foreach ($n->attributes as $a) {
+            foreach ($n->attributes as $a) {
 
-                        $result[$a->name] = $result[$a->name] ?? [];
-                        $result[$a->name][] = $a;
-                    }
+                $result[$a->name] = $result[$a->name] ?? [];
+                $result[$a->name][] = $a;
+            }
 
-                    foreach ($n->attributes as $a) {
-                        if ($remove) {
-                            $n->removeAttribute($a->name);
-                        } else {
-                            $n->setAttribute($a->name, NULL);
-                        }
+            if ($updates === NULL) {
+                foreach ($n->attributes as $a) {
+                    if ($remove) {
+                        $n->removeAttribute($a->name);
+                    } else {
+                        $n->setAttribute($a->name, NULL);
                     }
                 }
-            }
-        } elseif (!empty($updates)) {
-            foreach ($this->items() as $n) {
-                if (is_a($n, DOMElement::class)) {
+            } elseif (!empty($updates)) {
+                foreach ($updates as $uName => $uData) {
 
-                    foreach ($n->attributes as $a) {
-
-                        $result[$a->name] = $result[$a->name] ?? [];
-                        $result[$a->name][] = $a;
+                    if (preg_match('/^[\w\s_-]+$/', $uName) and !$n->hasAttribute($uName)) {
+                        $n->setAttribute($uName, NULL);
                     }
 
-                    foreach ($updates as $uName => $uParams) {
+                    $match = static::GetMatcher($uName);
+                    foreach ($n->attributes as $attr) {
+                        if ($match($attr->name)) {
 
-                        $match = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $uName) ? 'preg_match': 'fnmatch';
-                        if (!$n->hasAttribute($uName) and preg_match('/^[\w:_-]+$/', $uName)) {
-                            $n->setAttribute($uName, '');
-                        }
+                            $value = static::UpdateValue($attr->value, $uData);
 
-                        foreach ($n->attributes as $attr) {
-                            if ($match($uName, $attr->name)) {
-                                if (is_array($uParams)) {
+                            if (!empty($value)) {
+                                $value = htmlentities(html_entity_decode($value));
+                            }
 
-                                    $value = $attr->value ?: '';
-                                    $uParams[0] = $uParams[0] ?? $value;
-                                    $uParams[1] = $uParams[1] ?? $uParams[0];
-                                    $uParams[2] = $uParams[2] ?? 'str_replace';
-
-                                    $value = $uParams[2]($uParams[0], $uParams[1], $value);
-
-                                } else {
-                                    $value = strval($uParams);
-                                }
-
-                                if (!empty($value)) {
-                                    $value = htmlentities(html_entity_decode($value));
-                                }
-
-                                if (empty($value) and $remove) {
-                                    $n->removeAttribute($attr->name);
-                                } else {
-                                    $attr->value = $value;
-                                }
+                            if (($value === NULL) and $remove) {
+                                $n->removeAttribute($attr->name);
+                            } else {
+                                $attr->value = $value;
                             }
                         }
-                    }
-                }
-            }
-        } else {
-
-            foreach ($this->items() as $n) {
-                if (is_a($n, DOMElement::class)) {
-
-                    foreach ($n->attributes as $a) {
-                        $result[$a->name] = $result[$a->name] ?? [];
-                        $result[$a->name][] = $a;
                     }
                 }
             }
@@ -277,132 +221,5 @@ class NodeAggregator extends DataAggregator
         }
         return $result ?: [];
     }
-
-
-    // /**
-    //  *
-    //  *
-    //  */
-    // public function url ($attributes = NULL, $updates = '', bool $remove = TRUE): array
-    // {
-    //     $result = NULL;
-
-    //     // Нахождение узлов, к которым будет применяться метод //
-    //     $targets = [];
-    //     $attributes = is_array($attributes) ? $attributes : [$attributes];
-    //     $attributes = array_unique(array_filter($attributes));
-    //     if (empty($attributes)) {
-    //         $targets = $this->items();
-    //     } else {
-    //         foreach ($attributes as $aName) {
-
-    //             $match = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $aName) ? 'preg_match': 'fnmatch';
-    //             foreach ($this->items() as $n) {
-    //                 if (is_a($n, DOMElement::class)) {
-    //                     foreach ($n->attributes as $a) {
-    //                         if ($match($aName, $a->name)) {
-    //                             array_push($targets, $a);
-    //                         }
-    //                     }
-    //                 }
-    //             }
-    //         }
-    //     }
-
-    //     // Разбирает URL на компоненты
-    //     $parseUrl = function ($url): array {
-
-    //         if (is_string($url)) {
-    //             if ($url = parse_url($url)) {
-
-    //                 $query = [];
-    //                 parse_str($url['query'], $query);
-    //                 if ($query) {
-    //                     $url['query'] = $query;
-    //                 }
-    //             }
-    //         }
-
-    //         return is_array($url) ? $url : [];
-    //     };
-
-    //     // Собирает URL из компонентов
-    //     $buildUrl = function ($url): string {
-
-    //         if (is_array($url)) {
-
-    //             $scheme   = !empty($url['scheme']) ? $url['scheme'] . '://' : '';
-    //             $host     = !empty($url['host']) ? $url['host'] : '';
-    //             $port     = !empty($url['port']) ? ':' . $url['port'] : '';
-    //             $user     = !empty($url['user']) ? $url['user'] : '';
-    //             $pass     = !empty($url['pass']) ? ':' . $url['pass']  : '';
-    //             $pass     = ($user || $pass) ? "$pass@" : '';
-    //             $path     = !empty($url['path']) ? $url['path'] : '';
-    //             $query    = !empty($url['query']) ? '?' . $url['query'] : '';
-    //             $fragment = !empty($url['fragment']) ? '#' . $url['fragment'] : '';
-
-    //             $url = "$scheme$user$pass$host$port$path$query$fragment";
-    //         }
-
-    //         return is_string($url) ? $url : '';
-    //     };
-
-    //     if ($updates === NULL) {
-    //         foreach ($targets as $node) {
-
-    //             if ($result === NULL) {
-    //                 $result = $parseUrl($node->value);
-    //             }
-
-    //             if ($remove) {
-    //                 $node->parentNode->removeChild($node);
-    //             } else {
-    //                 $node->value = NULL;
-    //             }
-    //         }
-    //     } elseif (!empty($updates)) {
-
-    //         $updates = is_string($updates) ?
-    //             $parseUrl($updates):
-    //             (is_array($updates)? $updates : []);
-
-    //         foreach ($targets as $node) {
-
-    //             $source = $parseUrl($node->value);
-
-    //             if (($result === NULL) and isset($targets[0])) {
-    //                 $result = $source;
-    //             }
-
-    //             foreach ($updates as $uName => $uParams) {
-    //                 if (is_array($uParams)) {
-
-    //                     $source[$uName] = $source[$uName] ?? '';
-    //                     $uParams[0] = $uParams[0] ?? $source[$uName];
-    //                     $uParams[1] = $uParams[1] ?? $uParams[0];
-    //                     $uParams[2] = $uParams[2] ?? 'str_replace';
-
-    //                     $source[$uName] = $uParams[2]($uParams[0], $uParams[1], $source[$uName]);
-
-    //                 } else {
-    //                     $source[$uName] = strval($uParams);
-    //                 }
-    //             }
-
-    //             $node->value = $buildUrl($source);
-
-    //         }
-
-    //     }
-
-    //     if (($result === NULL) and isset($targets[0])) {
-    //         $result = $parseUrl($targets[0]->value);
-    //     }
-
-    //     foreach ($result as $key => $items) {
-    //         $result[$key] = new NodeAggregator (new ArrayIterator($items));
-    //     }
-    //     return $result ?: [];
-    // }
 
 }

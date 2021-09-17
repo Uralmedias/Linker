@@ -157,7 +157,7 @@ class LayoutFragment extends NodeAggregator
                 $s = Layout::fromHTML($s);
             }
 
-            foreach ($s->items() as $node) {
+            foreach ($s->GetNodes() as $node) {
                 array_push($nodes, $node);
             }
         }
