@@ -1,0 +1,4 @@
+array (
+  'class' => 'b_heading__title',
+  'data-test' => 'test transition',
+)

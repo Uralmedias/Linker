@@ -70,6 +70,20 @@ class NodeAggregatorTest extends AbstractTestCase
         $properties->attributes(['/data[-]test/' => ['number', 'attribute']]);
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');
 
-        //TODO: Протестировать все аргументы
+        $read = $properties->attributes();
+        $this->assertNoRegression(var_export($read, true), 'get.txt');
+
+        $read['data-test']->value('test data aggregator');
+        $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set_node.html');
+
+        $read['data-test']->value('test transition');
+        $another = new NodeAggregator($this->exampleXPath->query('//*[@class="b_list__item"]'));
+        $another->attributes($read);
+        $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set_transition.html');
+
+        foreach ($read as $name => $value) {
+            $read[$name] = (string) $value;
+        }
+        $this->assertNoRegression(var_export($read, true), 'get_converted.txt');
     }
 }
