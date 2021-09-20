@@ -1,6 +1,7 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 use ArrayObject;
+use Uralmedias\Linker\Generic;
 use Uralmedias\Linker\Layout\DataAggregator;
 use Generator, ArrayIterator, DOMElement;
 
@@ -140,10 +141,10 @@ class NodeAggregator extends DataAggregator
 
                     if (is_string($uKey)) {
 
-                        $match = static::GetMatcher($uKey);
+                        $match = Generic::matcher($uKey);
                         foreach ($classes as &$cName) {
                             if ($match($cName)) {
-                                $cName = static::UpdateValue($cName, $uData);
+                                $cName = Generic::value($cName, $uData);
                             }
                         }
 
@@ -191,7 +192,7 @@ class NodeAggregator extends DataAggregator
                         $n->setAttribute($uName, NULL);
                     }
 
-                    $match = static::GetMatcher($uName);
+                    $match = Generic::matcher($uName);
                     $matched = [];
                     foreach ($n->attributes as $attr) {
                         if ($match($attr->name)) {

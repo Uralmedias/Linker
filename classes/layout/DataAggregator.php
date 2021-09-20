@@ -1,6 +1,7 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 
+use Uralmedias\Linker\Generic;
 use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, DOMNode, DOMAttr, DOMElement;
 
 
@@ -79,7 +80,7 @@ class DataAggregator implements IteratorAggregate
                 break;
             }
 
-            $value = static::UpdateValue($value, $update);
+            $value = Generic::value($value, $update);
 
             if (is_a($n, DOMElement::class)) {
                 if (empty($value)) {
@@ -144,7 +145,7 @@ class DataAggregator implements IteratorAggregate
                 break;
             }
 
-            $value = static::UpdateValue($value, $update);
+            $value = Generic::value($value, $update);
 
             if (($value === NULL) and $removable) {
 
@@ -176,12 +177,9 @@ class DataAggregator implements IteratorAggregate
 
 
     /**
-     * Объединяет значения узлов в текст, выводя $words слов, но не более $chars
-     * символов. Отдельные значения скрепляются с помощью $separator. Если $words
-     * или $chars меньше нуля, то они отсчитываются с конца, а если равны нулю, то
-     * не учитываются. Аргумент $breakable позволяет разрезать слова при ограничении
-     * по символам, а если текст был обрезан, обрезанные части заменяется на $delimiter,
-     * который учитывается при вычислении лимитов, а $separator - учитывается.
+     * Объединяет значения узлов в текст, скрепляя отдельные значения с
+     * помощью $separator. Далее полученный текст обрабатывается по правилам
+     * Generic::text. $separator учитывается при подсчёте лимитов.
      */
     public function text ($separator = NULL, string $delimiter = NULL,
         int $words = 0, int $chars = 0, bool $breakable = FALSE): string
@@ -209,86 +207,7 @@ class DataAggregator implements IteratorAggregate
             }
         }
 
-        $result = implode($separator, $raw);
-        $delimiter = is_string($delimiter) ? $delimiter : strval($delimiter);
-        $cropped = FALSE;
-
-        if ($words !== 0) {
-
-            $re = $words > 0 ?
-                "/^(?:[^\w]*\w+){$words}/":
-                "/(?:\w+[^\w]*){-$words}$/";
-
-            $matches = [];
-            if (preg_match($re, $result)) {
-
-                $cropped = TRUE;
-                $result = $matches[0];
-            }
-        }
-
-        if ($chars !== 0) {
-
-            $re = $chars > 0 ?
-                ($breakable ? "/^.{$chars}/" : "/^.{$chars}\w*/"):
-                ($breakable ? "/.{-$chars}$/" : "/\w*.{-$chars}$/");
-
-        }
-
-        return $cropped ? $result.$delimiter : $result;
-    }
-
-
-    /**
-     * Возвращает измененное значение $value. Характер изменений описывается
-     * параметром $update, который может быть массивом или значением другого
-     * типа. В случае другого типа возвращается NULL или строковое представление
-     * $update. В массиве играют роль первые три значения: шаблон поиска,
-     * шаблон замены и функция. Функция по умолчанию - str_replace, второй
-     * параметр по умолчанию равен первому, а первый - самому значению.
-     */
-    protected static function UpdateValue (?string $value, $update): ?string
-    {
-        $value = $value ?: '';
-
-        if (is_array($update)) {
-
-            $update[0] = $update[0] ?? $value;
-            $update[1] = $update[1] ?? $update[0];
-            $update[2] = $update[2] ?? 'str_replace';
-
-            return $update[2]($update[0], $update[1], $value);
-        }
-
-        return $update === NULL ? NULL : strval($update);
-    }
-
-
-    /**
-     * Возвращает функцию, которая проверяет аргумент на соответствие выражению $pattern. Тип
-     * выражения определяется автоматически, возможные варианты: "регулярное выражение", "шаблон
-     * поиска" или "точное совпадение". Используется приемущественно для поиска ключей.
-     */
-    protected static function GetMatcher (string $pattern, $caseSensitivity = FALSE): callable
-    {
-        $simple = function (string $value) use ($pattern, $caseSensitivity): bool {
-            return $caseSensitivity?
-                $pattern === $value:
-                strtolower($pattern) === strtolower($value);
-        };
-
-        $regexp = function (string $value) use ($pattern, $caseSensitivity): bool {
-            return preg_match($pattern, $value);
-        };
-
-        $wildcard = function (string $value) use ($pattern, $caseSensitivity): bool {
-            return fnmatch($pattern, $value);
-        };
-
-        $result = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $pattern) ? $regexp : $wildcard;
-        $result = preg_match('/^[\w\s_-]+$/', $pattern) ? $simple : $result;
-
-        return $result;
+        return Generic::text(implode($separator, $raw), $delimiter, $words, $chars, $breakable);
     }
 
 
