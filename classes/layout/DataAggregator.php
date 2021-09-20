@@ -4,6 +4,12 @@
 use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, DOMNode, DOMAttr, DOMElement;
 
 
+/**
+ * Позволяет работать со значениями и именами узлов, выполнять
+ * массовые обновления, переименования и другие операции,
+ * доступные для большинства типов узлов DOM, исключаяя
+ * операции, связанное с обновлением структуры.
+ */
 class DataAggregator implements IteratorAggregate
 {
 
@@ -11,12 +17,19 @@ class DataAggregator implements IteratorAggregate
     private Traversable $items;
 
 
+    /**
+     * Создаёт объект из итерируемого источника узлов DOM.
+     */
     public function __construct (Traversable $items)
     {
         $this->items = $items;
     }
 
 
+    /**
+     * Позволяет объекту преобразовываться в строковое представление,
+     * предоставляя первое установленное значение узла.
+     */
     public function __toString(): string
     {
         foreach ($this->GetNodes() as $n) {
@@ -29,6 +42,10 @@ class DataAggregator implements IteratorAggregate
     }
 
 
+    /**
+     * Позволяет обращаться к узлам по отдельности, применять оператор
+     * foreach и другие операции для итерируемых объектов.
+     */
     public function getIterator(): Generator
     {
         foreach ($this->GetNodes() as $n) {
@@ -38,25 +55,36 @@ class DataAggregator implements IteratorAggregate
 
 
     /**
-     * **Имя узла**
-     *
-     * Для элемента это - тэг, для атрибута это - токен перед "=",
-     * узлы других типов не могут иметь имя, в этом случае
-     * значение не устанавливается, а возвращается пустая строка.
-     * Для установки используются все узлы в выборке, для возврата -
-     * первый подходящий узел.
+     * Возвращает первое установленное имя узла или изменяет имена всех узлов
+     * согласно правилам метода DataAggregator::UpdateValue. Если обновление и чтение
+     * происходят одновременно, возвращается старое значение. Аргумент $nullable
+     * позволяет использовать NULL в качетве $update. Узлы, имя которых
+     * становится пустым после обновления удаляются. Имена узлов - это имена
+     * атрибутов и тэги.
      */
-    public function name (string $update = NULL): string
+    public function name ($update = NULL, bool $nullable = FALSE): ?string
     {
-        // Обновление имени узла - нетривиальная операция. Дело в том,
-        // что текущая реализация не позволяет сделать это напрямую.
-        // Единственный способ - создать новый узел с новым именем.
-        // В следующих реализациях должны были исправить, но пока
-        // можно пользоваться только этим.
-        if ($update !== NULL) {
-            foreach ($this->GetNodes() as $n) {
+        $result = NULL;
 
-                if (is_a($n, DOMElement::class)) {
+        foreach ($this->GetNodes() as $n) {
+
+            if (is_a($n, DOMAttr::class) or is_a($n,DOMElement::class)) {
+                $value = $n->nodeName;
+            } else {
+                continue;
+            }
+
+            $result = $result ?? $value;
+            if (($result !== NULL) and !$nullable and ($update === NULL)) {
+                break;
+            }
+
+            $value = static::UpdateValue($value, $update);
+
+            if (is_a($n, DOMElement::class)) {
+                if (empty($value)) {
+                    $n->parentNode->removeChild($n);
+                } else {
 
                     $new = $n->ownerDocument->createElement($update);
                     while ($n->hasAttributes()) {
@@ -67,71 +95,158 @@ class DataAggregator implements IteratorAggregate
                     }
                     $n->parentNode->replaceChild($new, $n);
                     $n = $new;
-
-                } elseif (is_a($n, DOMAttr::class)) {
-
+                }
+            } elseif (is_a($n, DOMAttr::class)) {
+                if (empty($value)) {
+                    $n->ownerElement->removeAttribute($n->name);
+                } else {
+                    $n->parentNode->removeChild($n);
                     $new = $n->ownerDocument->createAttribute($update);
                     $new->value = $n->value;
                     $element = $n->parentNode;
                     $element->removeAttributeNode($n);
                     $element->setAttributeNode($new);
                     $n = $new;
-
                 }
             }
         }
 
-        // возврат значения
-        foreach ($this->GetNodes() as $n) {
-            if (is_a($n, DOMElement::class) or is_a($n, DOMAttr::class)) {
-                return $n->nodeName;
-            }
-        }
-        return "";
-    }
-
-
-    /**
-     * **Значение узла**
-     *
-     * Для элемента, коментария или текстового узла это - его текстовое
-     * значение, для атрибута - это выражение после "=". Если аргумент
-     * не равен NULL, он заменяет текущее значение. Для установки
-     * используются все узлы в выборке, для возврата - конкатенированное
-     * значение всех подходящих узлов.
-     */
-    public function value (string $update = NULL): string
-    {
-        if ($update !== NULL) {
-            foreach ($this->GetNodes() as $n) {
-
-                if (is_a($n, DOMElement::class)) {
-
-                    foreach ($n->childNodes as $cn) {
-                        $n->removeChild($cn);
-                    }
-                    $n->appendChild($n->ownerDocument->createTextNode($update));
-
-                } elseif (is_a($n, DOMAttr::class)) {
-
-                    $n->value = $update;
-
-                } elseif (is_a($n, DOMCharacterData::class)) {
-
-                    $n->data = $update;
-
-                }
-            }
-        }
-
-        $result = "";
-        foreach ($this->GetNodes() as $n) {
-            $result .= $n->textContent;
-        }
         return $result;
     }
 
 
+    /**
+     * Возвращает первое установленное значение узла или обновляет значения всех узлов
+     * согласно правилам метода DataAggregator::UpdateValue. Если обновление и чтение
+     * происходят одновременно, возвращается старое значение. Аргумент $nullable позволяет
+     * использовать NULL в качетве $update, аргумент $removable указывает на то, что узлы,
+     * значение которых не установлено после обновления должны быть удалены. Значения узлов -
+     * значения атрибутов и текст внутри элементов.
+     */
+    public function value ($update = NULL, bool $nullable = FALSE, bool $removable = FALSE): ?string
+    {
+        $result = NULL;
+
+        foreach ($this->GetNodes() as $n) {
+
+            if (is_a($n, DOMAttr::class)) {
+                $value = $n->value;
+            } elseif (is_a($n, DOMCharacterData::class)) {
+                $value = $n->data;
+            } elseif (is_a($n, DOMElement::class)) {
+                $value = $n->textContent;
+            } else {
+                continue;
+            }
+
+            $result = $result ?? $value;
+            if (($result !== null) and !$nullable and ($update === null)) {
+                break;
+            }
+
+            $value = static::UpdateValue($value, $update);
+
+            if (($value === NULL) and $removable) {
+
+                if (is_a($n, DOMAttr::class)) {
+                    $n->ownerElement->removeAttribute($n->name);
+                } else {
+                    $n->parentNode->removeChild($n);
+                }
+
+            } else {
+
+                if (is_a($n, DOMAttr::class)) {
+                    $n->value = $value;
+                } elseif (is_a($n, DOMCharacterData::class)) {
+                    $n->data = $value;
+                } elseif (is_a($n, DOMElement::class)) {
+
+                    foreach ($n->childNodes as $child) {
+                        $n->removeChild($child);
+                    }
+
+                    $n->appendChild($n->ownerDocument->createTextNode($value));
+                }
+            }
+        }
+
+        return $result;
+    }
+
+
+    /**
+     * Объединяет значения узлов в текст, выводя $words слов, но не более $chars
+     * символов. Отдельные значения скрепляются с помощью $separator. Если $words
+     * или $chars меньше нуля, то они отсчитываются с конца, а если равны нулю, то
+     * не учитываются. Аргумент $breakable позволяет разрезать слова при ограничении
+     * по символам, а если текст был обрезан, обрезанные части заменяется на $delimiter,
+     * который учитывается при вычислении лимитов, а $separator - учитывается.
+     */
+    public function text ($separator = NULL, string $delimiter = NULL,
+        int $words = 0, int $chars = 0, bool $breakable = FALSE): string
+    {
+        $result = "";
+        if (!is_array($separator)) {
+            $separator = strval($separator);
+        }
+
+        $raw = [];
+        foreach ($this->GetNodes() as $n) {
+
+            if (is_a($n, DOMAttr::class)) {
+                $value = $n->value;
+            } elseif (is_a($n, DOMCharacterData::class)) {
+                $value = $n->data;
+            } elseif (is_a($n, DOMElement::class)) {
+                $value = $n->textContent;
+            } else {
+                continue;
+            }
+
+            if (!empty($value)) {
+                $raw[] = $value;
+            }
+        }
+
+        $result = implode($separator, $raw);
+        $delimiter = is_string($delimiter) ? $delimiter : strval($delimiter);
+        $cropped = FALSE;
+
+        if ($words !== 0) {
+
+            $re = $words > 0 ?
+                "/^(?:[^\w]*\w+){$words}/":
+                "/(?:\w+[^\w]*){-$words}$/";
+
+            $matches = [];
+            if (preg_match($re, $result)) {
+
+                $cropped = TRUE;
+                $result = $matches[0];
+            }
+        }
+
+        if ($chars !== 0) {
+
+            $re = $chars > 0 ?
+                ($breakable ? "/^.{$chars}/" : "/^.{$chars}\w*/"):
+                ($breakable ? "/.{-$chars}$/" : "/\w*.{-$chars}$/");
+
+        }
+
+        return $cropped ? $result.$delimiter : $result;
+    }
+
+
+    /**
+     * Возвращает измененное значение $value. Характер изменений описывается
+     * параметром $update, который может быть массивом или значением другого
+     * типа. В случае другого типа возвращается NULL или строковое представление
+     * $update. В массиве играют роль первые три значения: шаблон поиска,
+     * шаблон замены и функция. Функция по умолчанию - str_replace, второй
+     * параметр по умолчанию равен первому, а первый - самому значению.
+     */
     protected static function UpdateValue (?string $value, $update): ?string
     {
         $value = $value ?: '';
@@ -149,6 +264,11 @@ class DataAggregator implements IteratorAggregate
     }
 
 
+    /**
+     * Возвращает функцию, которая проверяет аргумент на соответствие выражению $pattern. Тип
+     * выражения определяется автоматически, возможные варианты: "регулярное выражение", "шаблон
+     * поиска" или "точное совпадение". Используется приемущественно для поиска ключей.
+     */
     protected static function GetMatcher (string $pattern, $caseSensitivity = FALSE): callable
     {
         $simple = function (string $value) use ($pattern, $caseSensitivity): bool {
@@ -172,6 +292,11 @@ class DataAggregator implements IteratorAggregate
     }
 
 
+    /**
+     * Возвращает массив узлов DOM, на которые указвает текущий объект, и
+     * каждый из которых принадлежит хотябы к одному из классов, перечисленных
+     * в $classNames. Если не указать ни одного класса, возвращаются сразу все узлы.
+     */
     protected function GetNodes (string ...$classNemes): array
     {
         if (!isset($this->cache)) {

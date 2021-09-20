@@ -1,6 +1,6 @@
 <?php namespace Uralmedias\Linker\Layout;
 
-
+use ArrayObject;
 use Uralmedias\Linker\Layout\DataAggregator;
 use Generator, ArrayIterator, DOMElement;
 
@@ -161,14 +161,10 @@ class NodeAggregator extends DataAggregator
 
 
     /**
-     * **Атрибуты элементов**
      *
-     * Доступ к атрибутам элементов. Возвращает атрибуты в виде массива ключ-значение,
-     * принимает новые значения в таком же формате. При отсустствии ключа в аргументе,
-     * значение атрибута остаётся не тронутым. Если значение равно `NULL`, атрибут удаляется,
-     * кроме случаев, когда `$nullValues = TRUE`. В этом случае устанавливается `NULL`.
+     *
      */
-    public function attributes (?array $updates = [], bool $remove = TRUE): array
+    public function attributes (?array $updates = [], bool $removable = TRUE): array
     {
         $result = [];
 
@@ -182,13 +178,13 @@ class NodeAggregator extends DataAggregator
 
             if ($updates === NULL) {
                 foreach ($n->attributes as $a) {
-                    if ($remove) {
+                    if ($removable) {
                         $n->removeAttribute($a->name);
                     } else {
                         $n->setAttribute($a->name, NULL);
                     }
                 }
-            } elseif (!empty($updates)) {
+            } else {
                 foreach ($updates as $uName => $uData) {
 
                     if (preg_match('/^[\w\s_-]+$/', $uName) and !$n->hasAttribute($uName)) {
@@ -196,22 +192,15 @@ class NodeAggregator extends DataAggregator
                     }
 
                     $match = static::GetMatcher($uName);
+                    $matched = [];
                     foreach ($n->attributes as $attr) {
                         if ($match($attr->name)) {
-
-                            $value = static::UpdateValue($attr->value, $uData);
-
-                            if (!empty($value)) {
-                                $value = htmlentities(html_entity_decode($value));
-                            }
-
-                            if (($value === NULL) and $remove) {
-                                $n->removeAttribute($attr->name);
-                            } else {
-                                $attr->value = $value;
-                            }
+                            $matched[] = $attr;
                         }
                     }
+
+                    $aggregator = new DataAggregator(new ArrayObject($matched));
+                    $aggregator->value($uData, TRUE, $removable);
                 }
             }
         }
