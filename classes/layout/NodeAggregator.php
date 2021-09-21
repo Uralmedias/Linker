@@ -7,18 +7,8 @@ use Generator, ArrayIterator, DOMElement;
 
 
 /**
- * **Оператор доступа к свойствам узлов**
- *
- * Позволяет изменять код разметки меняя имена и значения,
- * атрибуты элементов и другие характеристики узлов. Также
- * позволяет получать эти значения.
- *
- * Экземпляр возвращается методами `nodes` класса `LayoutFragment`,
- * и методами `before`, `after`, `up`, `down`, `into`, `to` класса
- * `NodeRelocator`.
- *
- * *Длительное хранение экземпляра может привести к неожиданным
- * последствиям из-за непостоянства ссылок в PHP DOM.*
+ * То же, что и DataAggregator, но дополнительно позволяет
+ * управлять структурой и дочерними узлами.
  */
 class NodeAggregator extends DataAggregator
 {
@@ -118,7 +108,7 @@ class NodeAggregator extends DataAggregator
      *
      * *При использовании регулярных выражений можно использовать групировки и подстановки.*
      */
-    public function classes ($updates = [], bool $remove = TRUE): array
+    public function classes ($updates = [], bool $removable = TRUE): array
     {
         $result =[];
         if (is_string($updates)) {
@@ -131,7 +121,7 @@ class NodeAggregator extends DataAggregator
             array_push($result, ...$classes);
 
             if ($updates === null) {
-                if ($remove) {
+                if ($removable) {
                     $n->removeAttribute('class');
                 } else {
                     $n->setAttribute('class', NULL);
@@ -162,54 +152,72 @@ class NodeAggregator extends DataAggregator
 
 
     /**
-     *
-     *
+     * Создаёт ассоциативный массив, где ключи - это имена, а значения - объекты ```DataAggregator```,
+     * с узлами атрибутов. В результат попадают те атрибуты, имена которых совпадают с шаблонами
+     * в ключах ```$query``` или в значениях индексированных элементов. Шаблоны ключей подаются в
+     * формате для ```Generic::matcher```. Элементы с ключами содержат данные для обновления
+     * в формате для ```DataAggregator::value```, например:\
+     * ```['data-*']``` - вернуть все атрибуты, которые начинаются с "data-"\
+     * ```['data-*' => 'test']``` - как предыдущее, но еще установит значение в "test"\
+     * ```['data-*' => 'test', 'src']``` - как предыдущее, но дополнительно вернуть атрибуты "src"\
+     * Аргумент ```$nullable``` позволяет использовать значение ```NULL```, а ```$removable``` -
+     * удалять обнудённые узлы.
      */
-    public function attributes (?array $updates = [], bool $removable = TRUE): array
+    public function attributes ($query = ['*'], bool $nullable = FALSE, bool $removable = FALSE): array
     {
+        $query = is_iterable($query) ? $query : [$query];
         $result = [];
 
-        foreach ($this->GetNodes(DOMElement::class) as $n) {
+        foreach ($query as $qLeft => $qRight) {
 
-            foreach ($n->attributes as $a) {
-
-                $result[$a->name] = $result[$a->name] ?? [];
-                $result[$a->name][] = $a;
+            if (is_string($qLeft)) {
+                $match = Generic::matcher($qLeft);
+            } elseif (is_integer($qLeft) and is_string($qRight)) {
+                $match = Generic::matcher($qRight);
+            } else {
+                continue;
             }
 
-            if ($updates === NULL) {
-                foreach ($n->attributes as $a) {
-                    if ($removable) {
-                        $n->removeAttribute($a->name);
-                    } else {
-                        $n->setAttribute($a->name, NULL);
-                    }
-                }
-            } else {
-                foreach ($updates as $uName => $uData) {
+            $targets = [];
+            foreach ($this->GetNodes(DOMElement::class) as $n) {
 
-                    if (preg_match('/^[\w\s_-]+$/', $uName) and !$n->hasAttribute($uName)) {
-                        $n->setAttribute($uName, NULL);
-                    }
+                if ($name = (string) $match) {
 
-                    $match = Generic::matcher($uName);
-                    $matched = [];
-                    foreach ($n->attributes as $attr) {
-                        if ($match($attr->name)) {
-                            $matched[] = $attr;
+                    if (!$n->hasAttribute($name)) {
+                        $n->setAttribute($name, NULL);
+                    }
+                    $a = $n->getAttributeNode($name);
+
+                    $targets[] = $a;
+                    $result[$name] ??= [];
+                    $result[$name][$a->getNodePath()] = $a;
+
+                } else {
+
+                    foreach ($n->attributes as $a) {
+                        if ($match($a->name)) {
+
+                            $targets[] = $a;
+                            $result[$a->name] ??= [];
+                            $result[$a->name][$a->getNodePath()] = $a;
                         }
                     }
-
-                    $aggregator = new DataAggregator(new ArrayObject($matched));
-                    $aggregator->value($uData, TRUE, $removable);
                 }
+            }
+
+            if (is_string($qLeft) and !empty($targets)) {
+
+                $aggregator = new DataAggregator(new ArrayObject($targets));
+                $aggregator->value($qRight, $nullable, $removable);
             }
         }
 
-        foreach ($result as $key => $items) {
-            $result[$key] = new DataAggregator (new ArrayIterator($items));
+        foreach ($result as $rName => $rNodes) {
+            ksort($rNodes);
+            $result[$rName] = new DataAggregator (new ArrayIterator($rNodes));
         }
-        return $result ?: [];
+
+        return $result;
     }
 
 }

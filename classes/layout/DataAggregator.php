@@ -57,9 +57,9 @@ class DataAggregator implements IteratorAggregate
 
     /**
      * Возвращает первое установленное имя узла или изменяет имена всех узлов
-     * согласно правилам метода DataAggregator::UpdateValue. Если обновление и чтение
-     * происходят одновременно, возвращается старое значение. Аргумент $nullable
-     * позволяет использовать NULL в качетве $update. Узлы, имя которых
+     * согласно правилам метода ```Generic::value```. Если обновление и чтение
+     * происходят одновременно, возвращается старое значение. Аргумент ```$nullable```
+     * позволяет использовать ```NULL``` в качетве ```$update```. Узлы, имя которых
      * становится пустым после обновления удаляются. Имена узлов - это имена
      * атрибутов и тэги.
      */
@@ -118,36 +118,41 @@ class DataAggregator implements IteratorAggregate
 
     /**
      * Возвращает первое установленное значение узла или обновляет значения всех узлов
-     * согласно правилам метода DataAggregator::UpdateValue. Если обновление и чтение
-     * происходят одновременно, возвращается старое значение. Аргумент $nullable позволяет
-     * использовать NULL в качетве $update, аргумент $removable указывает на то, что узлы,
+     * согласно правилам метода ```Generic::value```. Если обновление и чтение
+     * происходят одновременно, возвращается новое значение. Аргумент ```$nullable``` позволяет
+     * использовать ```NULL``` в операциях, аргумент ```$removable``` указывает на то, что узлы,
      * значение которых не установлено после обновления должны быть удалены. Значения узлов -
-     * значения атрибутов и текст внутри элементов.
+     * значения атрибутов и текст внутри элементов. Примеры аргумента ```$update```:\
+     * ```'bar'``` - установит значение в "bar"\
+     * ```['foo', 'bar']``` - заменит вхождения "foo" на вхождения "bar" с помощью ```str_replace```\
+     * ```['foo', 'bar', 'preg_replace']``` - выполнит то же самое с помощью ```preg_replace```\
+     * Аргумент ```$nullable``` позволяет использовать NULL для установки значения,
+     * аргумент ```$removable``` позволяет удалять обнулённые узлы.
      */
-    public function value ($update = NULL, bool $nullable = FALSE, bool $removable = FALSE): ?string
+    public function value ($query = NULL, bool $nullable = FALSE, bool $removable = FALSE): ?string
     {
         $result = NULL;
 
         foreach ($this->GetNodes() as $n) {
 
             if (is_a($n, DOMAttr::class)) {
-                $value = $n->value;
+                $old = $n->value;
             } elseif (is_a($n, DOMCharacterData::class)) {
-                $value = $n->data;
+                $old = $n->data;
             } elseif (is_a($n, DOMElement::class)) {
-                $value = $n->textContent;
+                $old = $n->textContent;
             } else {
                 continue;
             }
 
-            $result = $result ?? $value;
-            if (($result !== null) and !$nullable and ($update === null)) {
-                break;
+            $new = Generic::value($old, $query);
+            if (($new === $old) or (($new === NULL) and !$nullable)) {
+
+                $result ??= $old;
+                continue;
             }
 
-            $value = Generic::value($value, $update);
-
-            if (($value === NULL) and $removable) {
+            if (($new === NULL) and $removable) {
 
                 if (is_a($n, DOMAttr::class)) {
                     $n->ownerElement->removeAttribute($n->name);
@@ -158,17 +163,21 @@ class DataAggregator implements IteratorAggregate
             } else {
 
                 if (is_a($n, DOMAttr::class)) {
-                    $n->value = $value;
+                    $n->value = $new;
                 } elseif (is_a($n, DOMCharacterData::class)) {
-                    $n->data = $value;
+                    $n->data = $new;
                 } elseif (is_a($n, DOMElement::class)) {
 
                     foreach ($n->childNodes as $child) {
                         $n->removeChild($child);
                     }
 
-                    $n->appendChild($n->ownerDocument->createTextNode($value));
+                    if ($new) {
+                        $n->appendChild($n->ownerDocument->createTextNode($new));
+                    }
                 }
+
+                $result ??= $new;
             }
         }
 
@@ -178,8 +187,8 @@ class DataAggregator implements IteratorAggregate
 
     /**
      * Объединяет значения узлов в текст, скрепляя отдельные значения с
-     * помощью $separator. Далее полученный текст обрабатывается по правилам
-     * Generic::text. $separator учитывается при подсчёте лимитов.
+     * помощью ```$separator```. Далее полученный текст обрабатывается по правилам
+     * ```Generic::text```. ```$separator``` учитывается при подсчёте лимитов.
      */
     public function text ($separator = NULL, string $delimiter = NULL,
         int $words = 0, int $chars = 0, bool $breakable = FALSE): string
@@ -214,12 +223,12 @@ class DataAggregator implements IteratorAggregate
     /**
      * Возвращает массив узлов DOM, на которые указвает текущий объект, и
      * каждый из которых принадлежит хотябы к одному из классов, перечисленных
-     * в $classNames. Если не указать ни одного класса, возвращаются сразу все узлы.
+     * в ```$classNames```. Если не указать ни одного класса, возвращаются сразу все узлы.
      */
     protected function GetNodes (string ...$classNemes): array
     {
         if (!isset($this->cache)) {
-            $this->cache = [...$this->items];
+            $this->cache = [...array_values(iterator_to_array($this->items))];
         }
 
         $result = [];

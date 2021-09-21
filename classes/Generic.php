@@ -77,30 +77,49 @@ abstract class Generic
 
 
     /**
-     * Возвращает функцию, которая проверяет аргумент на соответствие выражению $pattern. Тип
+     * Возвращает функтор, который проверяет аргумент на соответствие выражению ```$pattern```. Тип
      * выражения определяется автоматически, возможные варианты: "регулярное выражение", "шаблон
-     * поиска" или "точное совпадение". Используется приемущественно для поиска ключей.
+     * поиска" или "точное совпадение". В последнем случае функтор может быть преобразован в
+     * непустую строку, которая будет содержать выражение. Используется приемущественно для
+     * фильтрации ключей. Возможность превращения в строку используется для создания отсутствующих
+     * ключей (возможна только когда в качестве выражения выступает точный идентификатор).
      */
-    public static function matcher (string $pattern, $caseSensitivity = FALSE): callable
+    public static function matcher (string $pattern): ?callable
     {
-        $simple = function (string $value) use ($pattern, $caseSensitivity): bool {
-            return $caseSensitivity?
-                $pattern === $value:
-                strtolower($pattern) === strtolower($value);
+        return new class ($pattern) {
+
+            private $identifier = NULL;
+            private $comparator = NULL;
+
+            public function __construct (string $pattern) {
+
+                $simple = function (string $value) use ($pattern): bool {
+                    return strtolower($pattern) === strtolower($value);
+                };
+
+                $regexp = function (string $value) use ($pattern): bool {
+                    return preg_match($pattern, $value);
+                };
+
+                $wildcard = function (string $value) use ($pattern): bool {
+                    return fnmatch(strtolower($pattern), strtolower($value));
+                };
+
+                static $regexpPattern = '/^\/.*\/[gmixsuUAJD]*$/';
+                static $simplePattern = '/^[\w\s_-]+$/';
+
+                $this->comparator = preg_match($regexpPattern, $pattern) ? $regexp : $wildcard;
+                $this->comparator = preg_match($simplePattern, $pattern) ? $simple : $this->comparator;
+                $this->identifier = ($this->comparator === $simple) ? $pattern : NULL;
+            }
+
+            public function __invoke (string $value): bool {
+                return ($this->comparator)($value);
+            }
+
+            public function __toString(): string {
+                return $this->identifier ?? '';
+            }
         };
-
-        $regexp = function (string $value) use ($pattern, $caseSensitivity): bool {
-            return preg_match($pattern, $value);
-        };
-
-        $wildcard = function (string $value) use ($pattern, $caseSensitivity): bool {
-            return fnmatch($pattern, $value);
-        };
-
-        $result = preg_match('/^\/.*\/[gmixsuUAJD]*$/', $pattern) ? $regexp : $wildcard;
-        $result = preg_match('/^[\w\s_-]+$/', $pattern) ? $simple : $result;
-
-        return $result;
     }
-
 }
