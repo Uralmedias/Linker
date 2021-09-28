@@ -10,7 +10,6 @@ class GenericTest extends AbstractTestCase
 
     public function testValue()
     {
-        $this->startTimer();
 
         $value = 'testing';
         $d1 = NULL;
@@ -27,13 +26,11 @@ class GenericTest extends AbstractTestCase
         $this->assertSame(Generic::value($value, $d5), 'tester');
         $this->assertSame(Generic::value($value, $d6), 'tosting');
 
-        $this->stopTimer();
     }
 
 
     public function testMatcher()
     {
-        $this->startTimer();
 
         $m1 = Generic::matcher('data-foo');
         $m2 = Generic::matcher('data-*');
@@ -44,13 +41,11 @@ class GenericTest extends AbstractTestCase
         $this->assertTrue($m2('data-foo') and $m2('data-bar'));
         $this->assertTrue($m3('data-foo') and $m3('data-bar'));
 
-        $this->stopTimer();
     }
 
 
     public function testText ()
     {
-        $this->startTimer();
 
         $data = 'Lorem Ipsum - это текст-"рыба", часто используемый в печати и вэб-дизайне. '
             .'Lorem Ipsum является стандартной "рыбой" для текстов на латинице с начала XVI века. '
@@ -70,7 +65,6 @@ class GenericTest extends AbstractTestCase
         $this->assertNoRegression(Generic::text($data, '...', 5, -20, TRUE), '5b_20e_true.txt');
         $this->assertNoRegression(Generic::text($data, '...', -5, -20, TRUE), '5e_20e_true.txt');
 
-        $this->stopTimer();
     }
 
 }

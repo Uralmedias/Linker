@@ -26,6 +26,7 @@
         "phpunit/phpunit": "^9.5"
     },
     "scripts": {
-        "run-tests": "phpunit --testdox tests"
+        "run-testing": "phpunit --testdox tests",
+        "run-profiling": "php -d xdebug.mode=profile -d xdebug.profiler_enable=1 -d xdebug.profiler_output_dir=./ -d xdebug.profiler_output_name=cachegrind.out -f \"`which phpunit`\" -- --testdox tests"
     }
 }

@@ -70,16 +70,4 @@ abstract class AbstractTestCase extends TestCase
         $this->assertTrue(TRUE);
     }
 
-    private $timer;
-
-    public function startTimer ()
-    {
-        $this->timer =  microtime(true);
-    }
-
-    public function stopTimer ()
-    {
-        echo ' • '.(microtime(true) - $this->timer)."\n";
-    }
-
 }

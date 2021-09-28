@@ -10,7 +10,6 @@ class NodeAggregatorTest extends AbstractTestCase
 
     public function testName ()
     {
-        $this->startTimer();
 
         $properties = new NodeAggregator($this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
@@ -18,25 +17,21 @@ class NodeAggregatorTest extends AbstractTestCase
         $properties->name('div');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');
 
-        $this->stopTimer();
     }
 
 
     public function testValue ()
     {
-        $this->startTimer();
         $properties = new NodeAggregator($this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
         $this->assertNoRegression($properties->value(), 'get.txt');
         $properties->value('New heading');
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');
-        $this->stopTimer();
     }
 
 
     public function testStyle ()
     {
-        $this->startTimer();
         $properties1 = new NodeAggregator($this->exampleXPath->query('//ul'));
         $properties2 = new NodeAggregator($this->exampleXPath->query('//ol'));
 
@@ -50,13 +45,11 @@ class NodeAggregatorTest extends AbstractTestCase
         $properties2->styles(['background' => 'lightblue']);
 
         $this->assertNoRegression($this->exampleDocument->saveHTML(), 'set.html');
-        $this->stopTimer();
     }
 
 
     public function testClasses ()
     {
-        $this->startTimer();
         $properties1 = new NodeAggregator($this->exampleXPath->query('//*[@class="b_heading__title"]'));
         $properties2 = new NodeAggregator($this->exampleXPath->query('//*[@class="b_list__item"]'));
 
@@ -67,13 +60,11 @@ class NodeAggregatorTest extends AbstractTestCase
         $this->assertNoRegression(var_export($test, TRUE), 'get.txt');
 
         //TODO: Протестировать все аргументы
-        $this->stopTimer();
     }
 
 
     public function testAttributes ()
     {
-        $this->startTimer();
         $properties = new NodeAggregator($this->exampleXPath->query('//*[@class="b_heading__title"]'));
 
         $properties->attributes(['data-test' => '12345 number']);
@@ -100,6 +91,5 @@ class NodeAggregatorTest extends AbstractTestCase
             $read[$name] = (string) $value;
         }
         $this->assertNoRegression(var_export($read, true), 'get_converted.txt');
-        $this->stopTimer();
     }
 }
