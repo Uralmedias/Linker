@@ -129,9 +129,11 @@ class DataAggregator implements IteratorAggregate
      * Аргумент ```$nullable``` позволяет использовать NULL для установки значения,
      * аргумент ```$removable``` позволяет удалять обнулённые узлы.
      */
-    public function value ($query = NULL, bool $nullable = FALSE, bool $removable = FALSE): ?string
+    public function value ($params = [], bool $manage = TRUE): ?string
     {
         $result = NULL;
+        $params = is_array($params) ? $params : [$params];
+        $justRead = is_array($params) && (count($params) === 0);
 
         foreach ($this->GetNodes() as $n) {
 
@@ -145,14 +147,14 @@ class DataAggregator implements IteratorAggregate
                 continue;
             }
 
-            $new = Generic::value($old, $query);
-            if (($new === $old) or (($new === NULL) and !$nullable)) {
-
-                $result ??= $old;
-                continue;
+            if ($justRead and ($old !== NULL)) {
+                return $old;
             }
 
-            if (($new === NULL) and $removable) {
+            $new = Generic::value($old, $params);
+            $result ??= $new;
+
+            if (($new === NULL) and $manage) {
 
                 if (is_a($n, DOMAttr::class)) {
                     $n->ownerElement->removeAttribute($n->name);
@@ -176,8 +178,6 @@ class DataAggregator implements IteratorAggregate
                         $n->appendChild($n->ownerDocument->createTextNode($new));
                     }
                 }
-
-                $result ??= $new;
             }
         }
 

@@ -10,6 +10,7 @@ class LayoutFragmentTest extends AbstractTestCase
 
     public function testMinimize ()
     {
+        $this->startTimer();
         $fragment1 = new LayoutFragment (clone $this->exampleDocument);
         $fragment2 = new LayoutFragment (clone $this->exampleDocument);
         $fragment3 = new LayoutFragment (clone $this->exampleDocument);
@@ -23,40 +24,48 @@ class LayoutFragmentTest extends AbstractTestCase
         $this->assertNoRegression($fragment2, 'comments.html');
         $this->assertNoRegression($fragment3, 'scripts.html');
         $this->assertNoRegression($fragment4, 'scripts-comments.html');
+        $this->stopTimer();
     }
 
 
     public function testCut ()
     {
+        $this->startTimer();
         $donnor = new LayoutFragment ($this->exampleDocument);
         $piece = $donnor->cut('ul.b_list');
 
         $this->assertNoRegression($donnor, 'donnor.html');
         $this->assertNoRegression($piece, 'piece.html');
+        $this->stopTimer();
     }
 
 
     public function testCopy ()
     {
+        $this->startTimer();
         $donnor = new LayoutFragment ($this->exampleDocument);
         $piece = $donnor->copy('ul.b_list');
 
         $this->assertNoRegression($donnor, 'donnor.html');
         $this->assertNoRegression($piece, 'piece.html');
+        $this->stopTimer();
     }
 
 
     public function testMove ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->move('ul.b_list .b_list__item')->up('ol.b_list');
 
         $this->assertNoRegression($fragment, 'result.html');
+        $this->stopTimer();
     }
 
 
     public function testPull ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $piece1 = $fragment->copy('ul.b_list .b_list__item');
         $piece2 = $fragment->copy('ol.b_list .b_list__item');
@@ -64,11 +73,13 @@ class LayoutFragmentTest extends AbstractTestCase
         $fragment->pull($piece2)->down('ul.b_list');
 
         $this->assertNoRegression($fragment, 'result.html');
+        $this->stopTimer();
     }
 
 
     public function testPush ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $piece1 = $fragment->copy('ul.b_list .b_list__item');
         $piece2 = $fragment->copy('ol.b_list .b_list__item');
@@ -76,36 +87,44 @@ class LayoutFragmentTest extends AbstractTestCase
         $piece2->push($fragment)->down('ul.b_list');
 
         $this->assertNoRegression($fragment, 'result.html');
+        $this->stopTimer();
     }
 
 
     public function testWrite ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->write('Test LayoutFragment::write!')->after('p');
 
         $this->assertNoRegression($fragment, 'result.html');
+        $this->stopTimer();
     }
 
 
     public function testAnnotate ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->write('Test LayoutFragment::annotate!')->after('p');
 
         $this->assertNoRegression($fragment, 'result.html');
+        $this->stopTimer();
     }
 
 
     public function testNodes ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $this->assertNoRegression($fragment->nodes('p')->value(), 'result.txt');
+        $this->stopTimer();
     }
 
 
     public function testAssets ()
     {
+        $this->startTimer();
         $fragmentDefault = new LayoutFragment (clone $this->exampleDocument);
         $fragmentReplace = new LayoutFragment (clone $this->exampleDocument);
         $fragmentRegex = new LayoutFragment (clone $this->exampleDocument);
@@ -117,42 +136,47 @@ class LayoutFragmentTest extends AbstractTestCase
         $this->assertNoRegression(implode("\n", $default), 'default.txt');
         $this->assertNoRegression(implode("\n", $replace), 'replace.txt');
         $this->assertNoRegression(implode("\n", $regex), 'regex.txt');
+        $this->stopTimer();
     }
 
 
     public function testReverse ()
     {
+        $this->startTimer();
         $fragment = new LayoutFragment ($this->exampleDocument);
         $fragment->reverse('.b_heading__title');
         $fragment->reverse('.b_list__item');
 
         $this->assertNoRegression($fragment, 'result.html');
+        $this->stopTimer();
     }
 
 
-    public function testRandomize ()
-    {
-        $fragmentX = new LayoutFragment (clone $this->exampleDocument);
-        $fragmentX->randomize('.b_heading__title');
-        $fragmentX->randomize('.b_list__item');
+    // public function testRandomize ()
+    // {
+    //     $this->startTimer();
+    //     $fragmentX = new LayoutFragment (clone $this->exampleDocument);
+    //     $fragmentX->randomize('.b_heading__title');
+    //     $fragmentX->randomize('.b_list__item');
 
-        $fragmentY = new LayoutFragment (clone $this->exampleDocument);
-        $fragmentY->randomize('.b_heading__title');
-        $fragmentY->randomize('.b_list__item');
+    //     $fragmentY = new LayoutFragment (clone $this->exampleDocument);
+    //     $fragmentY->randomize('.b_heading__title');
+    //     $fragmentY->randomize('.b_list__item');
 
-        $stringPartsX = str_split((string) $fragmentX);
-        sort($stringPartsX);
-        $stringPartsX = implode($stringPartsX);
+    //     $stringPartsX = str_split((string) $fragmentX);
+    //     sort($stringPartsX);
+    //     $stringPartsX = implode($stringPartsX);
 
-        $stringPartsY = str_split((string) $fragmentY);
-        sort($stringPartsY);
-        $stringPartsY = implode($stringPartsY);
+    //     $stringPartsY = str_split((string) $fragmentY);
+    //     sort($stringPartsY);
+    //     $stringPartsY = implode($stringPartsY);
 
-        $this->assertTrue((string) $fragmentX != (string) $fragmentY);
-        $this->assertTrue($stringPartsX == $stringPartsY);
+    //     $this->assertTrue((string) $fragmentX != (string) $fragmentY);
+    //     $this->assertTrue($stringPartsX == $stringPartsY);
 
-        $this->assertNoRegression($stringPartsX, 'chars_x.txt');
-        $this->assertNoRegression($stringPartsY, 'chars_y.txt');
-    }
+    //     $this->assertNoRegression($stringPartsX, 'chars_x.txt');
+    //     $this->assertNoRegression($stringPartsY, 'chars_y.txt');
+    //     $this->stopTimer();
+    // }
 
 }

@@ -1,78 +1,100 @@
 <?php namespace Uralmedias\Linker;
 
 
+use Exception;
+
+
 /**
- * Агрегирует общие паттерны работы с данными, позволяя
- * сохранять целостность архитектуры и давать пользователям
- * возможность использовать те же алгоритмы, что используются
- * классами библиотеки.
+ * Служит пространством имён для хранения общих и часто используемых алгоритмов.
  */
 abstract class Generic
 {
 
     /**
-     * Обрабатывает строку $source, выводя $words слов, но не более $chars
-     * символов. Если $words или $chars меньше нуля, то они отсчитываются с конца,
-     * а если равны нулю, то не учитываются. Аргумент $breakable позволяет разрезать
-     * слова при ограничении по символам, а если текст был обрезан, обрезанные части
-     * заменяется на $delimiter, который не учитывается при вычислении лимитов.
+     * Метод формирует текст, сначала захватывая ```$words``` слов из ```$source``` с соседними небуквенными
+     * символами, затем оставляет ```$chars``` символов. Если ```$words``` или ```$chars``` меньше
+     * нуля, то отсчёт ведётся с конца, а равные нулю значения не учитываются. Аргумент ```$breakable```
+     * указывает: можно ли разрывать слова при ограничении по символам. Если нельзя, то вместе со
+     * словом в результат попадают соседние небуквенные символы, кроме пробелов. Аргумент ```$delimiter```
+     * содержит начало и (или) окончание обрезанной строки, в подсчёте лимитов не используется.
      */
     public static function text (?string $source, string $delimiter = NULL,
         int $words = 0, int $chars = 0, bool $breakable = FALSE): string
     {
+
+        // Экспериментально выяснил, что переворот строки работает в десятки раз эффективнее,
+        // чем использование специального регулярного выражения для поиска с конца
+
         $result = $source ? strval($source) : '';
 
-        $delimiter = is_string($delimiter) ? $delimiter : strval($delimiter);
-        $cropped = FALSE;
+        $delimiter = strval($delimiter);
+        $croppedFront = FALSE;
+        $croppedBack = FALSE;
 
         if ($words !== 0) {
 
-            $re = $words > 0 ?
-                "/^(?:[^\w]*\w+){$words}/":
-                "/(?:\w+[^\w]*){-$words}$/";
+            $count = ($words < 0) ? -$words : $words;
+            $result = ($words < 0) ? implode('', array_reverse(preg_split('//u', $result))) : $result;
+            $re = "/^(?:[^\w]*\w+[^\w]*){{$count}}/su";
 
             $matches = [];
-            if (preg_match($re, $result)) {
-
-                $cropped = TRUE;
+            preg_match($re, $result, $matches);
+            if (!empty($matches[0])) {
+                $croppedFront |= $words < 0;
+                $croppedBack |= $words > 0;
                 $result = $matches[0];
             }
+
+            $result = ($words < 0) ? implode('', array_reverse(preg_split('//u', $result))) : $result;
         }
 
         if ($chars !== 0) {
 
-            $re = $chars > 0 ?
-                ($breakable ? "/^.{$chars}/" : "/^.{$chars}\w*/"):
-                ($breakable ? "/.{-$chars}$/" : "/\w*.{-$chars}$/");
+            $count = ($chars < 0) ? -$chars : $chars;
+            $result = ($chars < 0) ? implode('', array_reverse(preg_split('//u', $result))) : $result;
+            $re = $breakable ? "/^.{{$count}}/su" : "/^.{{$count}}\w*[^\w]?/su";
 
+            $matches = [];
+            preg_match($re, $result, $matches);
+            if (!empty($matches[0])) {
+                $croppedFront |= $chars < 0;
+                $croppedBack |= $chars > 0;
+                $result = $matches[0];
+            }
+
+            $result = ($chars < 0) ? implode('', array_reverse(preg_split('//u', $result))) : $result;
         }
 
-        return $cropped ? $result.$delimiter : $result;
+        $result = $croppedFront ? $delimiter.ltrim($result) : $result;
+        $result = $croppedBack ? rtrim($result).$delimiter : $result;
+
+        return $result;
     }
 
 
     /**
-     * Возвращает измененное значение $value. Характер изменений описывается
-     * параметром $update, который может быть массивом или значением другого
-     * типа. В случае другого типа возвращается NULL или строковое представление
-     * $update. В массиве играют роль первые три значения: шаблон поиска,
-     * шаблон замены и функция. Функция по умолчанию - str_replace, второй
-     * параметр по умолчанию равен первому, а первый - самому значению.
+     * Возвращает измененное значение ```$value```. Изменение происходит путём
+     * интерпритации ```$params``` одним из следующих способов:
+     * ```php
+     * Generic::value('foo') === Generic::value('foo', []) === 'foo';
+     * Generic::value('foo', 'bar') === Generic::value('foo', ['bar']) === 'bar';
+     * Generic::value('foo', ['f', 'm']) === 'moo';
+     * Generic::value('foo', ['/f/', 'm', 'preg_replace']) === 'moo';
+     * ```
      */
-    public static function value (?string $value, $update): ?string
+    public static function value (?string $value, $params = []): ?string
     {
-        $value = $value ?: '';
+        $params = is_array($params) ? $params : [$params];
 
-        if (is_array($update)) {
+        switch (count($params)) {
 
-            $update[0] = $update[0] ?? $value;
-            $update[1] = $update[1] ?? $update[0];
-            $update[2] = $update[2] ?? 'str_replace';
-
-            return $update[2]($update[0], $update[1], $value);
+            case 0: return $value;
+            case 1: return isset($params[0]) ? strval($params[0]) : NULL;
+            case 2: return str_replace(strval($params[0]), strval($params[1]), $value);
+            case 3: return $params[2](strval($params[0]), strval($params[1]), $value);
         }
 
-        return $update === NULL ? NULL : strval($update);
+        throw new Exception ();
     }
 
 
@@ -122,4 +144,5 @@ abstract class Generic
             }
         };
     }
+
 }

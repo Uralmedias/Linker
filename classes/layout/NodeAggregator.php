@@ -1,5 +1,6 @@
 <?php namespace Uralmedias\Linker\Layout;
 
+
 use ArrayObject;
 use Uralmedias\Linker\Generic;
 use Uralmedias\Linker\Layout\DataAggregator;
@@ -163,19 +164,17 @@ class NodeAggregator extends DataAggregator
      * Аргумент ```$nullable``` позволяет использовать значение ```NULL```, а ```$removable``` -
      * удалять обнудённые узлы.
      */
-    public function attributes ($query = ['*'], bool $nullable = FALSE, bool $removable = FALSE): array
+    public function attributes ($params = ['*'], bool $manage = TRUE): array
     {
-        $query = is_iterable($query) ? $query : [$query];
+        $params = is_array($params) ? $params : [$params];
         $result = [];
 
-        foreach ($query as $qLeft => $qRight) {
+        foreach ($params as $qLeft => $qRight) {
 
             if (is_string($qLeft)) {
                 $match = Generic::matcher($qLeft);
-            } elseif (is_integer($qLeft) and is_string($qRight)) {
-                $match = Generic::matcher($qRight);
             } else {
-                continue;
+                $match = Generic::matcher(strval($qRight));
             }
 
             $targets = [];
@@ -183,14 +182,15 @@ class NodeAggregator extends DataAggregator
 
                 if ($name = (string) $match) {
 
-                    if (!$n->hasAttribute($name)) {
+                    if (!$n->hasAttribute($name) and $manage) {
                         $n->setAttribute($name, NULL);
                     }
-                    $a = $n->getAttributeNode($name);
 
-                    $targets[] = $a;
-                    $result[$name] ??= [];
-                    $result[$name][$a->getNodePath()] = $a;
+                    if ($a = $n->getAttributeNode($name)) {
+                        $targets[] = $a;
+                        $result[$name] ??= [];
+                        $result[$name][$a->getNodePath()] = $a;
+                    }
 
                 } else {
 
@@ -208,7 +208,7 @@ class NodeAggregator extends DataAggregator
             if (is_string($qLeft) and !empty($targets)) {
 
                 $aggregator = new DataAggregator(new ArrayObject($targets));
-                $aggregator->value($qRight, $nullable, $removable);
+                $aggregator->value($qRight, $manage);
             }
         }
 
