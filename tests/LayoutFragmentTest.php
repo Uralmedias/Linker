@@ -152,31 +152,31 @@ class LayoutFragmentTest extends AbstractTestCase
     }
 
 
-    // public function testRandomize ()
-    // {
-    //     $this->startTimer();
-    //     $fragmentX = new LayoutFragment (clone $this->exampleDocument);
-    //     $fragmentX->randomize('.b_heading__title');
-    //     $fragmentX->randomize('.b_list__item');
+    public function testRandomize ()
+    {
+        $this->startTimer();
+        $fragmentX = new LayoutFragment (clone $this->exampleDocument);
+        $fragmentX->randomize('.b_heading__title');
+        $fragmentX->randomize('.b_list__item');
 
-    //     $fragmentY = new LayoutFragment (clone $this->exampleDocument);
-    //     $fragmentY->randomize('.b_heading__title');
-    //     $fragmentY->randomize('.b_list__item');
+        $fragmentY = new LayoutFragment (clone $this->exampleDocument);
+        $fragmentY->randomize('.b_heading__title');
+        $fragmentY->randomize('.b_list__item');
 
-    //     $stringPartsX = str_split((string) $fragmentX);
-    //     sort($stringPartsX);
-    //     $stringPartsX = implode($stringPartsX);
+        $stringPartsX = str_split((string) $fragmentX);
+        sort($stringPartsX);
+        $stringPartsX = implode($stringPartsX);
 
-    //     $stringPartsY = str_split((string) $fragmentY);
-    //     sort($stringPartsY);
-    //     $stringPartsY = implode($stringPartsY);
+        $stringPartsY = str_split((string) $fragmentY);
+        sort($stringPartsY);
+        $stringPartsY = implode($stringPartsY);
 
-    //     $this->assertTrue((string) $fragmentX != (string) $fragmentY);
-    //     $this->assertTrue($stringPartsX == $stringPartsY);
+        $this->assertTrue((string) $fragmentX != (string) $fragmentY);
+        $this->assertTrue($stringPartsX == $stringPartsY);
 
-    //     $this->assertNoRegression($stringPartsX, 'chars_x.txt');
-    //     $this->assertNoRegression($stringPartsY, 'chars_y.txt');
-    //     $this->stopTimer();
-    // }
+        $this->assertNoRegression($stringPartsX, 'chars_x.txt');
+        $this->assertNoRegression($stringPartsY, 'chars_y.txt');
+        $this->stopTimer();
+    }
 
 }
