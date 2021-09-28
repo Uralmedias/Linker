@@ -71,13 +71,13 @@ class LayoutFragment extends NodeAggregator
 
         $clean = FALSE;
 
-        foreach ($this->query($q) as $node) {
+        foreach ($this->QueryNodes($q) as $node) {
             $node->textContent = preg_replace('/\s+/', ' ', $node->textContent);
             $clean = TRUE;
         }
 
         if ($comments) {
-            foreach ($this->query('//comment()') as $node) {
+            foreach ($this->QueryNodes('//comment()') as $node) {
                 $node->parentNode->removeChild($node);
                 $clean = TRUE;
             }
@@ -93,7 +93,7 @@ class LayoutFragment extends NodeAggregator
     // TODO: Написать тест
     public function split (...$selectors): Generator
     {
-        foreach ($this->query(...$selectors) as $node) {
+        foreach ($this->QueryNodes(...$selectors) as $node) {
             yield Layout::fromNodes($node);
         }
     }
@@ -105,7 +105,7 @@ class LayoutFragment extends NodeAggregator
     public function cut (...$selectors): self
     {
         $nodes = [];
-        foreach ($this->query(...$selectors) as $node) {
+        foreach ($this->QueryNodes(...$selectors) as $node) {
 
             $nodes[] = $node;
             $node->parentNode->removeChild($node);
@@ -124,14 +124,14 @@ class LayoutFragment extends NodeAggregator
      */
     public function copy (...$selectors): self
     {
-        return Layout::fromNodes(...$this->query(...$selectors));
+        return Layout::fromNodes(...$this->QueryNodes(...$selectors));
     }
 
 
     public function move (...$selectors): NodeRelocator
     {
         $nodes = [];
-        foreach ($this->query(...$selectors) as $node) {
+        foreach ($this->QueryNodes(...$selectors) as $node) {
 
             $nodes[] = $node;
             $node->parentNode->removeChild($node);
@@ -225,7 +225,7 @@ class LayoutFragment extends NodeAggregator
     public function nodes (...$selectors): NodeAggregator
     {
         $this->clean();
-        return new NodeAggregator ($this->query(...$selectors));
+        return new NodeAggregator ($this->QueryNodes(...$selectors));
     }
 
 
@@ -240,7 +240,7 @@ class LayoutFragment extends NodeAggregator
             $search = array_keys($updates);
             $replacement = array_values($updates);
 
-            $nodes = $this->query($xpath);
+            $nodes = $this->QueryNodes($xpath);
 
             foreach ($nodes as $n) {
 
@@ -271,7 +271,7 @@ class LayoutFragment extends NodeAggregator
      */
     public function reverse (...$selectors): NodeAggregator
     {
-        $nodes = [...$this->query(...$selectors)];
+        $nodes = [...$this->QueryNodes(...$selectors)];
 
         $result = [];
         while ($nodeX = array_shift($nodes) and ($nodeY = array_pop($nodes))) {
@@ -297,7 +297,7 @@ class LayoutFragment extends NodeAggregator
      */
     public function randomize (...$selectors): NodeAggregator
     {
-        $nodes = [...$this->query(...$selectors)];
+        $nodes = [...$this->QueryNodes(...$selectors)];
         shuffle($nodes);
 
         $result = [];
@@ -345,7 +345,7 @@ class LayoutFragment extends NodeAggregator
     }
 
 
-    private function query (...$selectors): Generator
+    private function QueryNodes (...$selectors): Generator
     {
         if (empty($selectors)) {
 

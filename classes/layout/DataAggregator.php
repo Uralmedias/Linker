@@ -14,16 +14,17 @@ use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, 
 class DataAggregator implements IteratorAggregate
 {
 
+    private array $items;
     private array $cache;
-    private Traversable $items;
 
 
     /**
      * Создаёт объект из итерируемого источника узлов DOM.
      */
-    public function __construct (Traversable $items)
+    public function __construct (Traversable $source)
     {
-        $this->items = $items;
+        $this->items = iterator_to_array($source, FALSE);
+        $this->cache = [];
     }
 
 
@@ -147,8 +148,12 @@ class DataAggregator implements IteratorAggregate
                 continue;
             }
 
-            if ($justRead and ($old !== NULL)) {
-                return $old;
+            if ($justRead) {
+                if ($old !== NULL) {
+                    return $old;
+                } else {
+                    continue;
+                }
             }
 
             $new = Generic::value($old, $params);
@@ -221,30 +226,75 @@ class DataAggregator implements IteratorAggregate
 
 
     /**
+     * Возвращает массив имён узлов, значений узлов или пар имён и значений в виде
+     * двумерного массива. Структура и содержимое результата определяются
+     * сочетанием аргументов ```$names``` и ```values```.
+     */
+    public function pluck (bool $names = FALSE, bool $values = TRUE): array
+    {
+        $result = [];
+
+        if ($names || $values) {
+            foreach ($this->GetNodes() as $n) {
+
+                if (is_a($n, DOMAttr::class)) {
+
+                    $name = $n->nodeName;
+                    $value = $n->value;
+
+                } elseif (is_a($n, DOMCharacterData::class)) {
+
+                    $names = NULL;
+                    $value = $n->data;
+
+                } elseif (is_a($n, DOMElement::class)) {
+
+                    $names = $n->nodeName;
+                    $value = $n->textContent;
+
+                } else {
+                    continue;
+                }
+
+                if (($names && $values) && ($name && $value)) {
+                    $result[] = [$name, $value];
+                } elseif ($names && $name) {
+                    $result[] = $name;
+                } elseif ($values && $value) {
+                    $result[] = $value;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+
+    /**
      * Возвращает массив узлов DOM, на которые указвает текущий объект, и
      * каждый из которых принадлежит хотябы к одному из классов, перечисленных
      * в ```$classNames```. Если не указать ни одного класса, возвращаются сразу все узлы.
      */
-    protected function GetNodes (string ...$classNemes): array
+    protected function GetNodes (string ...$classNames): array
     {
-        if (!isset($this->cache)) {
-            $this->cache = [...array_values(iterator_to_array($this->items))];
-        }
+        $result = $this->items;
+        if (count($classNames) > 0) {
 
-        $result = [];
-        if (empty($classNemes)) {
-            $result = $this->cache;
-        } else {
-
-            foreach ($this->GetNodes() as $n) {
-                foreach ($classNemes as $class) {
-                    if (is_a($n, $class)) {
-
-                        $result[] = $n;
-                        break;
+            $cacheKey = Generic::identify($classNames);
+            if (!array_key_exists($cacheKey, $this->cache)) {
+                $cacheEntry = [];
+                foreach ($this->items as $n) {
+                    foreach ($classNames as $cn) {
+                        if (is_a($n, $cn)) {
+                            $cacheEntry[] = $n;
+                            break;
+                        }
                     }
                 }
+
+                $this->cache[$cacheKey] = $cacheEntry;
             }
+            $result = $this->cache[$cacheKey];
         }
 
         return $result;

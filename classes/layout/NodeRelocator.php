@@ -44,10 +44,11 @@ class NodeRelocator
         foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
+            $parent = $a->parentNode;
+
             foreach ($target->items as $i) {
 
-				if (!$i) continue;
-                $node = $a->parentNode->insertBefore($i->cloneNode(true), $a);
+                $node = $parent->insertBefore($i->cloneNode(TRUE), $a);
                 array_push($nodes, $node);
             }
         }
@@ -65,12 +66,13 @@ class NodeRelocator
         foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
+            $parent = $a->parentNode;
             $first = null;
 
             foreach ($target->items as $i) {
 
 				//if (!$i) continue;
-                $node = $a->parentNode->insertBefore($i->cloneNode(true), $a);
+                $node = $parent->insertBefore($i->cloneNode(true), $a);
                 array_push($nodes, $node);
                 $first = $first ?? $node;
             }
@@ -141,8 +143,8 @@ class NodeRelocator
 
             $a = $target->anchor;
 
-            while ($a->hasChildNodes()) {
-                $a->removeChild($a->firstChild);
+            while ($n = $a->firstChild) {
+                $a->removeChild($n);
             }
 
             foreach ($target->items as $i) {
@@ -166,11 +168,12 @@ class NodeRelocator
         foreach ($this->GetTargets(...$selectors) as $target) {
 
             $a = $target->anchor;
+            $parent = $a->parentNode;
 
             foreach ($target->items as $i) {
 
 				if (!$i) continue;
-                $node = $a->parentNode->insertBefore($i->cloneNode(TRUE), $a);
+                $node = $parent->insertBefore($i->cloneNode(TRUE), $a);
                 array_push($nodes, $node);
             }
 

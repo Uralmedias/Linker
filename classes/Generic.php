@@ -90,11 +90,36 @@ abstract class Generic
 
             case 0: return $value;
             case 1: return isset($params[0]) ? strval($params[0]) : NULL;
-            case 2: return str_replace(strval($params[0]), strval($params[1]), $value);
-            case 3: return $params[2](strval($params[0]), strval($params[1]), $value);
+            case 2: return str_replace($params[0], $params[1], $value);
+            case 3: return $params[2]($params[0], $params[1], $value);
         }
 
         throw new Exception ();
+    }
+
+
+    /**
+     * Создаёт уникальный хэш для ```$value```. Хэши для скалярных
+     * значений или массивов, состоящих только из скалярных значений
+     * могут быть использованы повторно между запусками.
+     */
+    public static function identify ($value): string
+    {
+        if (is_array($value)) {
+
+            $result = '';
+            foreach ($value as $v) {
+                $result .= static::identify($v);
+            }
+            return md5($result);
+
+        } elseif (is_object($value)) {
+            return spl_object_hash($value);
+        } elseif (is_callable($value)) {
+            return spl_object_hash((object) $value);
+        }
+
+        return md5(serialize($value));
     }
 
 
