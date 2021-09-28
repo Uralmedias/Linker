@@ -5,7 +5,7 @@ use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Layout\NodeRelocator;
 use Uralmedias\Linker\Layout\NodeAggregator;
 use ArrayIterator, Generator, DOMDocument, DOMXPath;
-
+use DOMNode;
 
 /**
  * **Фрагмент кода разметки**
@@ -153,8 +153,14 @@ class LayoutFragment extends NodeAggregator
         $nodes = [];
         foreach ($sources as $s) {
 
-            if (!is_a($s, NodeAggregator::class)) {
-                $s = Layout::fromHTML($s);
+            if (is_callable($s)) {
+                $s = Layout::fromOutput($s);
+            } elseif (is_a($s, DOMNode::class)) {
+                $s = Layout::fromNodes($s);
+            } elseif (is_a($s, DOMDocument::class)) {
+                $s = Layout::fromDocument($s);
+            } elseif (!is_a($s, NodeAggregator::class)) {
+                $s = Layout::fromHTML(strval($s));
             }
 
             foreach ($s->GetNodes() as $node) {
@@ -170,11 +176,17 @@ class LayoutFragment extends NodeAggregator
     }
 
 
-    public function push (self ...$targets): NodeRelocator
+    public function push (...$targets): NodeRelocator
     {
         $xpaths = [];
         foreach ($targets as $t) {
-            array_push($xpaths, $t->xpath);
+            if (is_a($t, self::class)) {
+                array_push($xpaths, $t->xpath);
+            } elseif (is_a($t, DOMXpath::class)) {
+                array_push($xpaths, $t);
+            } elseif (is_a($t, DOMDocument::class)) {
+                array_push($xpaths, new DOMXPath($t));
+            }
         }
 
         return new NodeRelocator (new ArrayIterator($xpaths), $this->document->childNodes);
