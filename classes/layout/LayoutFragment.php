@@ -43,7 +43,7 @@ class LayoutFragment extends NodeAggregator
     {
         $this->document = clone $this->document;
         $this->xpath = new DOMXPath($this->document);
-        $this->nodes = $this->document->childNodes;
+        parent::__construct($this->document->childNodes);
     }
 
 
