@@ -4,8 +4,7 @@
 use Uralmedias\Linker\Layout;
 use Uralmedias\Linker\Layout\NodeRelocator;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use ArrayIterator, Generator, DOMDocument, DOMXPath;
-use DOMNode;
+use ArrayIterator, Traversable, Generator, DOMDocument, DOMXPath, DOMNode;
 
 /**
  * **Фрагмент кода разметки**
@@ -32,7 +31,6 @@ class LayoutFragment extends NodeAggregator
     {
         $this->document = $document;
         $this->xpath = new DOMXPath($this->document);
-        parent::__construct($document->childNodes);
     }
 
 
@@ -354,6 +352,17 @@ class LayoutFragment extends NodeAggregator
     {
         $this->queryCache = [];
         $this->stringCache = NULL;
+    }
+
+
+    /**
+     * Возвращает массив узлов DOM, на которые указвает текущий объект, и
+     * каждый из которых принадлежит хотябы к одному из классов, перечисленных
+     * в ```$classNames```. Если не указать ни одного класса, возвращаются сразу все узлы.
+     */
+    protected function GetNodes (string ...$classNames): Traversable
+    {
+        return $this->document->childNodes;
     }
 
 

@@ -275,13 +275,14 @@ class DataAggregator implements IteratorAggregate
      * каждый из которых принадлежит хотябы к одному из классов, перечисленных
      * в ```$classNames```. Если не указать ни одного класса, возвращаются сразу все узлы.
      */
-    protected function GetNodes (string ...$classNames): array
+    protected function GetNodes (string ...$classNames): Traversable
     {
         $result = $this->items;
         if (count($classNames) > 0) {
 
             $cacheKey = Generic::identify($classNames);
             if (!array_key_exists($cacheKey, $this->cache)) {
+
                 $cacheEntry = [];
                 foreach ($this->items as $n) {
                     foreach ($classNames as $cn) {
@@ -297,7 +298,7 @@ class DataAggregator implements IteratorAggregate
             $result = $this->cache[$cacheKey];
         }
 
-        return $result;
+        return new ArrayIterator($result);
     }
 
 }
