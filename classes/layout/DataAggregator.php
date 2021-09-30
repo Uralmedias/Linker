@@ -142,8 +142,6 @@ class DataAggregator implements IteratorAggregate
             if ($justRead) {
                 if (!empty($old)) {
                     return $old;
-                } else {
-                    continue;
                 }
             } else {
 
@@ -169,7 +167,7 @@ class DataAggregator implements IteratorAggregate
                         $n->appendChild($data);
 
                     } elseif (is_a($n, DOMCharacterData::class)) {
-                        $n->data = $new;
+                        $n->data = $new ?? '';
                     }
                 }
             }
