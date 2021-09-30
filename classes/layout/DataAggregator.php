@@ -36,7 +36,7 @@ class DataAggregator implements IteratorAggregate
     {
         foreach ($this->GetNodes() as $n) {
             if (is_a($n, DOMNode::class)) {
-                return $n->value ?: '';
+                return $n->textContent ?: '';
             }
         }
 
@@ -145,31 +145,32 @@ class DataAggregator implements IteratorAggregate
                 } else {
                     continue;
                 }
-            }
+            } else {
 
-            $new = Generic::value($old, $params);
-            $result ??= $new;
+                $new = Generic::value($old, $params);
+                $result ??= $new;
 
-            if (empty($new) && $manage) {
+                if (empty($new) && $manage) {
 
-                if (is_a($n, DOMAttr::class)) {
-                    $n->ownerElement->removeAttribute($n->name);
-                } else {
-                    $n->parentNode->removeChild($n);
-                }
-
-            } elseif ($new !== $old) {
-
-                if (is_a($n, DOMAttr::class) || is_a($n, DOMElement::class)) {
-
-                    $data = new DOMText($new);
-                    foreach ($n->childNodes as $child) {
-                        $n->removeChild($child);
+                    if (is_a($n, DOMAttr::class)) {
+                        $n->ownerElement->removeAttribute($n->name);
+                    } else {
+                        $n->parentNode->removeChild($n);
                     }
-                    $n->appendChild($data);
 
-                } elseif (is_a($n, DOMCharacterData::class)) {
-                    $n->data = $new;
+                } elseif ($new !== $old) {
+
+                    if (is_a($n, DOMAttr::class) || is_a($n, DOMElement::class)) {
+
+                        $data = new DOMText($new);
+                        foreach ($n->childNodes as $child) {
+                            $n->removeChild($child);
+                        }
+                        $n->appendChild($data);
+
+                    } elseif (is_a($n, DOMCharacterData::class)) {
+                        $n->data = $new;
+                    }
                 }
             }
         }
@@ -186,25 +187,13 @@ class DataAggregator implements IteratorAggregate
     public function text ($separator = NULL, string $delimiter = NULL,
         int $words = 0, int $chars = 0, bool $breakable = FALSE): string
     {
-        $result = "";
         if (!is_array($separator)) {
             $separator = strval($separator);
         }
 
         $raw = [];
         foreach ($this->GetNodes() as $n) {
-
-            if (is_a($n, DOMAttr::class)) {
-                $value = $n->value;
-            } elseif (is_a($n, DOMCharacterData::class)) {
-                $value = $n->data;
-            } elseif (is_a($n, DOMElement::class)) {
-                $value = $n->textContent;
-            } else {
-                continue;
-            }
-
-            if (!empty($value)) {
+            if (!empty($value = $n->textContent)) {
                 $raw[] = $value;
             }
         }
@@ -225,24 +214,8 @@ class DataAggregator implements IteratorAggregate
         if ($names || $values) {
             foreach ($this->GetNodes() as $n) {
 
-                if (is_a($n, DOMAttr::class)) {
-
-                    $name = $n->nodeName;
-                    $value = $n->value;
-
-                } elseif (is_a($n, DOMCharacterData::class)) {
-
-                    $names = NULL;
-                    $value = $n->data;
-
-                } elseif (is_a($n, DOMElement::class)) {
-
-                    $names = $n->nodeName;
-                    $value = $n->textContent;
-
-                } else {
-                    continue;
-                }
+                $name = $n->nodeName;
+                $value = $n->textContent;
 
                 if (($names && $values) && ($name && $value)) {
                     $result[] = [$name, $value];
