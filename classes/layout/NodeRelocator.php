@@ -25,12 +25,13 @@ class NodeRelocator
 {
 
     private array $cache;
-    private Traversable $sources;
+    private array $targets;
+    private array $sources;
 
 
-    public function __construct (Traversable $targets, Traversable $sources)
+    public function __construct (array $targets, array $sources)
     {
-        $this->GetTargets = $targets;
+        $this->targets = $targets;
         $this->sources = $sources;
     }
 
@@ -53,7 +54,7 @@ class NodeRelocator
             }
         }
 
-        return new NodeAggregator(new ArrayIterator($nodes));
+        return new NodeAggregator($nodes);
     }
 
 
@@ -82,7 +83,7 @@ class NodeRelocator
             }
         }
 
-        return new NodeAggregator(new ArrayIterator($nodes));
+        return new NodeAggregator($nodes);
     }
 
 
@@ -108,7 +109,7 @@ class NodeRelocator
             }
         }
 
-        return new NodeAggregator(new ArrayIterator($nodes));
+        return new NodeAggregator($nodes);
     }
 
 
@@ -129,7 +130,7 @@ class NodeRelocator
             }
         }
 
-        return new NodeAggregator(new ArrayIterator($nodes));
+        return new NodeAggregator($nodes);
     }
 
 
@@ -155,7 +156,7 @@ class NodeRelocator
             }
         }
 
-        return new NodeAggregator(new ArrayIterator($nodes));
+        return new NodeAggregator($nodes);
     }
 
 
@@ -180,15 +181,15 @@ class NodeRelocator
             $a->parentNode->removeChild($a);
         }
 
-        return new NodeAggregator(new ArrayIterator($nodes));
+        return new NodeAggregator($nodes);
     }
 
 
-    private function GetTargets (...$selectors): Generator
+    protected function GetTargets (...$selectors): Generator
     {
         if (!isset($this->cache)) {
             $this->cache = [];
-            foreach ($this->GetTargets as $t) {
+            foreach ($this->targets as $t) {
                 $items = [];
                 foreach ($this->sources as $s) {
                     if ($s->ownerDocument->isSameNode($t->document)) {

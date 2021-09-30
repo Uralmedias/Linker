@@ -28,7 +28,7 @@ class NodeAggregator extends DataAggregator
     public function getIterator(): Generator
     {
         foreach ($this->GetNodes() as $n) {
-            yield new NodeAggregator(new ArrayIterator([$n]));
+            yield new NodeAggregator([$n]);
         }
     }
 
@@ -207,14 +207,14 @@ class NodeAggregator extends DataAggregator
 
             if (is_string($qLeft) and !empty($targets)) {
 
-                $aggregator = new DataAggregator(new ArrayObject($targets));
+                $aggregator = new DataAggregator($targets);
                 $aggregator->value($qRight, $manage);
             }
         }
 
         foreach ($result as $rName => $rNodes) {
             ksort($rNodes);
-            $result[$rName] = new DataAggregator (new ArrayIterator($rNodes));
+            $result[$rName] = new DataAggregator ($rNodes);
         }
 
         return $result;

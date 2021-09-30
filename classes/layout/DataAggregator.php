@@ -14,17 +14,14 @@ use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, 
 class DataAggregator implements IteratorAggregate
 {
 
-    private array $items;
-    private array $cache;
-
+    private array $items = [];
 
     /**
      * Создаёт объект из итерируемого источника узлов DOM.
      */
-    public function __construct (Traversable $source)
+    public function __construct (array $source)
     {
-        $this->items = iterator_to_array($source, FALSE);
-        $this->cache = [];
+        $this->items[Generic::identify([])] = $source;
     }
 
 
@@ -51,7 +48,7 @@ class DataAggregator implements IteratorAggregate
     public function getIterator(): Generator
     {
         foreach ($this->GetNodes() as $n) {
-            yield new DataAggregator(new ArrayIterator([$n]));
+            yield new DataAggregator([$n]);
         }
     }
 
@@ -234,30 +231,27 @@ class DataAggregator implements IteratorAggregate
      * каждый из которых принадлежит хотябы к одному из классов, перечисленных
      * в ```$classNames```. Если не указать ни одного класса, возвращаются сразу все узлы.
      */
-    protected function GetNodes (string ...$classNames): Traversable
+    protected function GetNodes (string ...$classNames): array
     {
-        $result = $this->items;
-        if (count($classNames) > 0) {
+        $cacheKey = Generic::identify($classNames);
 
-            $cacheKey = Generic::identify($classNames);
-            if (!array_key_exists($cacheKey, $this->cache)) {
+        if (!array_key_exists($cacheKey, $this->items)) {
 
-                $cacheEntry = [];
-                foreach ($this->items as $n) {
-                    foreach ($classNames as $cn) {
-                        if (is_a($n, $cn)) {
-                            $cacheEntry[] = $n;
-                            break;
-                        }
+            $cacheEntry = [];
+            $nodes = $this->items[Generic::identify([])];
+            foreach ($nodes as $n) {
+                foreach ($classNames as $cn) {
+                    if (is_a($n, $cn)) {
+                        $cacheEntry[] = $n;
+                        break;
                     }
                 }
-
-                $this->cache[$cacheKey] = $cacheEntry;
             }
-            $result = $this->cache[$cacheKey];
+
+            $this->items[$cacheKey] = $cacheEntry;
         }
 
-        return new ArrayIterator($result);
+        return $this->items[$cacheKey];
     }
 
 }

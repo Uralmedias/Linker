@@ -41,7 +41,7 @@ class LayoutFragment extends NodeAggregator
     {
         $this->document = clone $this->document;
         $this->xpath = new DOMXPath($this->document);
-        parent::__construct($this->document->childNodes);
+
     }
 
 
@@ -82,18 +82,8 @@ class LayoutFragment extends NodeAggregator
         }
 
         if ($clean) {
-			 $this->clean();
+			$this->ClearCache();
 		}
-    }
-
-
-    // TODO: Написать документацию
-    // TODO: Написать тест
-    public function split (...$selectors): Generator
-    {
-        foreach ($this->QueryNodes(...$selectors) as $node) {
-            yield Layout::fromNodes($node);
-        }
     }
 
 
@@ -110,7 +100,7 @@ class LayoutFragment extends NodeAggregator
         }
 
         if (!empty($nodes)) {
-			 $this->clean();
+			$this->ClearCache();
 		}
 
         return Layout::fromNodes(...$nodes);
@@ -136,10 +126,10 @@ class LayoutFragment extends NodeAggregator
         }
 
         if (!empty($nodes)) {
-			 $this->clean();
+			$this->ClearCache();
 		}
 
-        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator ([$this->xpath], $nodes);
     }
 
 
@@ -167,10 +157,10 @@ class LayoutFragment extends NodeAggregator
         }
 
         if (!empty($nodes)) {
-			 $this->clean();
+			$this->ClearCache();
 		}
 
-        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator ([$this->xpath], $nodes);
     }
 
 
@@ -187,7 +177,7 @@ class LayoutFragment extends NodeAggregator
             }
         }
 
-        return new NodeRelocator (new ArrayIterator($xpaths), $this->document->childNodes);
+        return new NodeRelocator ($xpaths, $this->GetNodes());
     }
 
 
@@ -203,10 +193,10 @@ class LayoutFragment extends NodeAggregator
         }
 
         if (!empty($nodes)) {
-			 $this->clean();
+			$this->ClearCache();
 		}
 
-        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator ([$this->xpath], $nodes);
     }
 
 
@@ -222,10 +212,10 @@ class LayoutFragment extends NodeAggregator
         }
 
         if (!empty($nodes)) {
-			 $this->clean();
+			$this->ClearCache();
 		}
 
-        return new NodeRelocator (new ArrayIterator([$this->xpath]), new ArrayIterator($nodes));
+        return new NodeRelocator ([$this->xpath], $nodes);
     }
 
 
@@ -234,8 +224,8 @@ class LayoutFragment extends NodeAggregator
      */
     public function nodes (...$selectors): NodeAggregator
     {
-        $this->clean();
-        return new NodeAggregator ($this->QueryNodes(...$selectors));
+       $this->ClearCache();
+        return new NodeAggregator (iterator_to_array($this->QueryNodes(...$selectors)));
     }
 
 
@@ -262,7 +252,7 @@ class LayoutFragment extends NodeAggregator
             }
 
 		    if (!empty($nodes)) {
-				 $this->clean();
+				$this->ClearCache();
 			}
 
             return $result;
@@ -295,10 +285,10 @@ class LayoutFragment extends NodeAggregator
         }
 
         if (!empty($nodes)) {
-			 $this->clean();
+			$this->ClearCache();
 		}
 
-        return new NodeAggregator (new ArrayIterator($result));
+        return new NodeAggregator ($result);
     }
 
 
@@ -321,8 +311,8 @@ class LayoutFragment extends NodeAggregator
             $result[] = $parentY->insertBefore($nodeX, $nodeZ);
         }
 
-        $this->clean();
-        return new NodeAggregator (new ArrayIterator($result));
+        $this->ClearCache();
+        return new NodeAggregator ($result);
     }
 
 
@@ -348,7 +338,7 @@ class LayoutFragment extends NodeAggregator
     }
 
 
-    private function clean (): void
+    protected function ClearCache (): void
     {
         $this->queryCache = [];
         $this->stringCache = NULL;
@@ -360,13 +350,13 @@ class LayoutFragment extends NodeAggregator
      * каждый из которых принадлежит хотябы к одному из классов, перечисленных
      * в ```$classNames```. Если не указать ни одного класса, возвращаются сразу все узлы.
      */
-    protected function GetNodes (string ...$classNames): Traversable
+    protected function GetNodes (string ...$classNames): array
     {
-        return $this->document->childNodes;
+        return iterator_to_array($this->document->childNodes, FALSE);
     }
 
 
-    private function QueryNodes (...$selectors): Generator
+    protected function QueryNodes (...$selectors): Generator
     {
         if (empty($selectors)) {
 

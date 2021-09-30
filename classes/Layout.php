@@ -194,7 +194,7 @@ abstract class Layout
         if (!empty($contents)) {
 
             $contents = mb_convert_encoding($contents, 'HTML-ENTITIES', $encoding);
-            $cacheKey = md5($contents);
+            $cacheKey = Generic::identify($contents);
 
             if (!array_key_exists($cacheKey, self::$htmlCache)) {
 
