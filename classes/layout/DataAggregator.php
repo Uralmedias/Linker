@@ -2,7 +2,7 @@
 
 
 use Uralmedias\Linker\Generic;
-use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, DOMNode, DOMAttr, DOMElement;
+use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, DOMNode, DOMText, DOMAttr, DOMElement;
 
 
 /**
@@ -138,18 +138,9 @@ class DataAggregator implements IteratorAggregate
 
         foreach ($this->GetNodes() as $n) {
 
-            if (is_a($n, DOMAttr::class)) {
-                $old = $n->value;
-            } elseif (is_a($n, DOMCharacterData::class)) {
-                $old = $n->data;
-            } elseif (is_a($n, DOMElement::class)) {
-                $old = $n->textContent;
-            } else {
-                continue;
-            }
-
+            $old = $n->textContent;
             if ($justRead) {
-                if ($old !== NULL) {
+                if (!empty($old)) {
                     return $old;
                 } else {
                     continue;
@@ -159,7 +150,7 @@ class DataAggregator implements IteratorAggregate
             $new = Generic::value($old, $params);
             $result ??= $new;
 
-            if (($new === NULL) and $manage) {
+            if (empty($new) && $manage) {
 
                 if (is_a($n, DOMAttr::class)) {
                     $n->ownerElement->removeAttribute($n->name);
@@ -167,21 +158,18 @@ class DataAggregator implements IteratorAggregate
                     $n->parentNode->removeChild($n);
                 }
 
-            } else {
+            } elseif ($new !== $old) {
 
-                if (is_a($n, DOMAttr::class)) {
-                    $n->value = $new;
-                } elseif (is_a($n, DOMCharacterData::class)) {
-                    $n->data = $new;
-                } elseif (is_a($n, DOMElement::class)) {
+                if (is_a($n, DOMAttr::class) || is_a($n, DOMElement::class)) {
 
+                    $data = new DOMText($new);
                     foreach ($n->childNodes as $child) {
                         $n->removeChild($child);
                     }
+                    $n->appendChild($data);
 
-                    if ($new) {
-                        $n->appendChild($n->ownerDocument->createTextNode($new));
-                    }
+                } elseif (is_a($n, DOMCharacterData::class)) {
+                    $n->data = $new;
                 }
             }
         }
