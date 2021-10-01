@@ -2,9 +2,10 @@
 
 
 use Uralmedias\Linker\Layout;
+use Uralmedias\Linker\Generic;
 use Uralmedias\Linker\Layout\NodeRelocator;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use ArrayIterator, Traversable, Generator, DOMDocument, DOMXPath, DOMNode;
+use Generator, DOMDocument, DOMXPath, DOMNode;
 
 /**
  * **Фрагмент кода разметки**
@@ -326,14 +327,12 @@ class LayoutFragment extends NodeAggregator
         }
 
         $result = 0;
-        foreach ($selectors as $s) {
-
-            $request = Layout::select($s);
-            if (!array_key_exists($request, $this->queryCache)) {
-                $this->queryCache[$request] = $this->xpath->query($request);
-            }
-            $result += $this->queryCache[$request]->length;
+        $request = Generic::select($selectors);
+        if (!array_key_exists($request, $this->queryCache)) {
+            $this->queryCache[$request] = $this->xpath->query($request);
         }
+        $result += $this->queryCache[$request]->length;
+
         return $result;
     }
 
@@ -366,16 +365,13 @@ class LayoutFragment extends NodeAggregator
 
         } else {
 
-            foreach ($selectors as $s) {
+            $query = Generic::select(...$selectors);
+            if (!array_key_exists($query, $this->queryCache)) {
+                $this->queryCache[$query] = $this->xpath->query($query);
+            }
 
-                $request = Layout::select($s);
-                if (!array_key_exists($request, $this->queryCache)) {
-                    $this->queryCache[$request] = $this->xpath->query($request);
-                }
-
-                foreach ($this->queryCache[$request] as $node) {
-                    yield $node;
-                }
+            foreach ($this->queryCache[$query] as $node) {
+                yield $node;
             }
         }
     }

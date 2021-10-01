@@ -1,9 +1,9 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 
-use Uralmedias\Linker\Layout;
+use Uralmedias\Linker\Generic;
 use Uralmedias\Linker\Layout\NodeAggregator;
-use Traversable, ArrayIterator, DOMNode, Generator;
+use DOMNode, Generator;
 
 
 /**
@@ -206,15 +206,13 @@ class NodeRelocator
             }
         }
 
-        foreach ($selectors as $s) {
-            $xpath = Layout::select($s);
-            foreach ($this->cache as $i) {
-                foreach ($i[0]->query($xpath) as $anchor) {
-                    yield (object) [
-                        'anchor' => $anchor,
-                        'items' => $i[1]
-                    ];
-                }
+        $xpath = Generic::select(...$selectors);
+        foreach ($this->cache as $i) {
+            foreach ($i[0]->query($xpath) as $anchor) {
+                yield (object) [
+                    'anchor' => $anchor,
+                    'items' => $i[1]
+                ];
             }
         }
     }

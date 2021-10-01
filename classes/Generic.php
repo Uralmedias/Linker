@@ -1,14 +1,66 @@
 <?php namespace Uralmedias\Linker;
 
 
-use Exception;
+use Symfony\Component\CssSelector\CssSelectorConverter;
+use Exception, DOMXPath, DOMDocument;
 
 
 /**
- * Служит пространством имён для хранения общих и часто используемых алгоритмов.
+ * Служит пространством имён общих и часто используемых методов.
  */
 abstract class Generic
 {
+
+    private static CssSelectorConverter $converter;
+    private static DOMXPath $tester;
+    private static array $selectCache = [];
+
+
+    /**
+     * Конвертирует ```$selectors``` в запрос XPath следующим образом:
+     * ```exp1,[exp2, exp3]``` будет преобразовано в ```/exp1|/exp2/exp3```,
+     * что примерно означает "узлы exp1 ИЛИ узлы exp3, находящиеся
+     * внутри узлов exp2". В данном случае ```exp1```, ```exp2``` и ```exp3``` -
+     * это селектор CSS, выражение XPath или целочисленный индекс. В случае,
+     * когда индекс меньше нуля, отсчет будет идти с конца.
+     */
+    public static function select (...$selectors): string
+    {
+        $cacheKey = static::identify($selectors);
+
+        if (!array_key_exists($cacheKey, self::$selectCache)) {
+            $query = [];
+            foreach ($selectors as $p) {
+
+                $steps = is_array($p) ? $p : [$p];
+                $subquery = '';
+                foreach ($steps as $s) {
+                    if (is_integer($s)) {
+                        $subquery .= '/*'.(($s < 0) ? '[last()'.$s.']': '['.($s + 1).']');
+                    } else {
+                        try {
+
+                            self::$converter ??= new CssSelectorConverter();
+                            $subquery .= self::$converter->toXPath($s, '//');
+
+                        } catch (Exception $e) {
+
+                            self::$tester ??= new DOMXPath(new DOMDocument);
+                            self::$tester->query($s);
+                            $subquery .= $s;
+                        }
+                    }
+                }
+
+                $query[] = $subquery;
+            }
+
+            self::$selectCache[$cacheKey] = implode('|', $query);
+        }
+
+        return self::$selectCache[$cacheKey];
+    }
+
 
     /**
      * Метод формирует текст, сначала захватывая ```$words``` слов из ```$source``` с соседними небуквенными

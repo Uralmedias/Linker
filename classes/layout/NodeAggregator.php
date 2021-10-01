@@ -1,10 +1,9 @@
 <?php namespace Uralmedias\Linker\Layout;
 
 
-use ArrayObject;
 use Uralmedias\Linker\Generic;
 use Uralmedias\Linker\Layout\DataAggregator;
-use Generator, ArrayIterator, DOMElement;
+use Generator, DOMElement;
 
 
 /**

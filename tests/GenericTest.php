@@ -8,6 +8,23 @@ use Uralmedias\Linker\Tests\AbstractTestCase;
 class GenericTest extends AbstractTestCase
 {
 
+    public function testSelect()
+    {
+        // echo Generic::select('ul', 'ol');
+        // die;
+
+        $this->assertNoRegression(Generic::select(-1), 'negative.txt');
+        $this->assertNoRegression(Generic::select(1), 'positive.txt');
+        $this->assertNoRegression(Generic::select(0), 'zero.txt');
+        $this->assertNoRegression(Generic::select('tag'), 'tag.txt');
+        $this->assertNoRegression(Generic::select('#id'), 'id.txt');
+        $this->assertNoRegression(Generic::select('.class'), 'class.txt');
+        $this->assertNoRegression(Generic::select('parent>children'), 'children.txt');
+        $this->assertNoRegression(Generic::select('.multi.class'), 'multiclass.txt');
+        $this->assertNoRegression(Generic::select('*[attribute=value]'), 'attribute.txt');
+    }
+
+
     public function testValue()
     {
 

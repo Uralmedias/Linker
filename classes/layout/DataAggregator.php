@@ -2,7 +2,7 @@
 
 
 use Uralmedias\Linker\Generic;
-use ArrayIterator, Generator, Traversable, IteratorAggregate, DOMCharacterData, DOMNode, DOMText, DOMAttr, DOMElement;
+use Generator, IteratorAggregate, DOMCharacterData, DOMNode, DOMText, DOMAttr, DOMElement;
 
 
 /**
